@@ -2878,7 +2878,35 @@ var _bm_4c14=884437,_ck_8d66=&quot;dca2ccbea127&quot;;&lt;/script&gt;
             { id: 'sport', name: '🏀 运动健身', color: '#A8E6CF' }
         ];
         const API_URL = 'https://quickform.cn/api/mz86mfrqui';
-        let state = { group: null, role: null, name: null, selectedTopicA: null, subsC: new Set(), isSubscribed: false };
+        
+        // 从localStorage恢复状态
+        function loadState() {
+            const saved = localStorage.getItem('weather_student_state');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    return { ...parsed, subsC: new Set(parsed.subsC || []) };
+                } catch(e) {}
+            }
+            return { group: null, role: null, name: null, selectedTopicA: null, subsC: new Set(), isSubscribed: false };
+        }
+        
+        function saveState() {
+            const toSave = { ...state, subsC: Array.from(state.subsC) };
+            localStorage.setItem('weather_student_state', JSON.stringify(toSave));
+        }
+        
+        let state = loadState();
+        
+        // 页面加载时检查是否已登录
+        window.onload = function() {
+            if (state.group && state.role && state.name) {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app').classList.remove('hidden');
+                document.getElementById('identity-text').textContent = `组 ${state.group} - 角色 ${state.role} (${state.name})`;
+                initRoleScreen();
+            }
+        };
 
         function login() {
             const name = document.getElementById('student-name').value.trim();
@@ -2887,6 +2915,7 @@ var _bm_4c14=884437,_ck_8d66=&quot;dca2ccbea127&quot;;&lt;/script&gt;
             state.name = name;
             state.group = Math.ceil(id / 3);
             state.role = ['A', 'B', 'C'][(id - 1) % 3];
+            saveState();
             showRoleTip();
         }
 
@@ -2907,6 +2936,7 @@ var _bm_4c14=884437,_ck_8d66=&quot;dca2ccbea127&quot;;&lt;/script&gt;
             document.getElementById('role-tip-modal').classList.remove('active');
             document.getElementById('app').classList.remove('hidden');
             document.getElementById('identity-text').textContent = `组 ${state.group} - 角色 ${state.role} (${state.name})`;
+            saveState();
             initRoleScreen();
         }
 
