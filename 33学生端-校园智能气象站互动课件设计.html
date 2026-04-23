@@ -5449,7 +5449,9 @@ var _bm_47d6=493387,_ck_db42=&quot;f87d57b2e969&quot;;&lt;/script&gt;
         renderTopics();
         
         // 第3关完成检测：收到至少3条不同主题的消息
+        console.log('[DEBUG] currentLevel:', state.currentLevel, 'received:', received, 'receivedTopics.size:', state.receivedTopics.size, 'level3Completed:', state.level3Completed);
         if (received && state.currentLevel === 3 && state.receivedTopics.size >= 3 && !state.level3Completed) {
+            console.log('[DEBUG] 第3关任务完成！');
             state.level3Completed = true;
             reportData(3, 'Completed');
             setTimeout(() => {
