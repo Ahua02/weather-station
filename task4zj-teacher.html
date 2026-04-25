@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MQTT 气象站练习数据看板</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .pixel-box {
+      background: white;
+      border: 2px solid #000;
+      box-shadow: 4px 4px 0 #000;
+    }
+    .pixel-btn {
+      padding: 8px 16px;
+      border: 2px solid #000;
+      box-shadow: 3px 3px 0 #000;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .pixel-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0 #000;
+    }
+    .stat-card {
+      text-align: center;
+      padding: 16px;
+    }
+    .stat-value {
+      font-size: 36px;
+      font-weight: bold;
+      color: #1a1a1a;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+  <div class="max-w-7xl mx-auto">
+    <!-- 标题栏 -->
+    <header class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="font-bold text-gray-900 text-2xl">MQTT 气象站练习数据看板</h1>
+        <p class="text-gray-500 mt-2">实时监控学生练习进度与掌握情况</p>
+      </div>
+      <button onclick="loadData()" class="pixel-btn bg-green-500 text-white">刷新数据</button>
+    </header>
+
+    <!-- 统计卡片 -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+      <div class="pixel-box stat-card">
+        <div id="total-count" class="stat-value text-blue-600">0</div>
+        <div class="stat-label">提交总人数</div>
+      </div>
+      <div class="pixel-box stat-card">
+        <div id="avg-score" class="stat-value text-orange-500">0</div>
+        <div class="stat-label">平均分</div>
+      </div>
+      <div class="pixel-box stat-card">
+        <div id="max-score" class="stat-value text-green-600">0</div>
+        <div class="stat-label">最高分</div>
+      </div>
+      <div class="pixel-box stat-card">
+        <div id="pass-rate" class="stat-value text-purple-600">0%</div>
+        <div class="stat-label">及格率 (≥60)</div>
+      </div>
+    </div>
+
+    <!-- 图表区域 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <!-- 分数分布直方图 -->
+      <div class="pixel-box p-6">
+        <h3 class="font-bold text-lg mb-4">分数分布直方图</h3>
+        <div class="h-64">
+          <canvas id="scoreChart"></canvas>
+        </div>
+      </div>
+      
+      <!-- 高频错题排行 -->
+      <div class="pixel-box p-6">
+        <h3 class="font-bold text-lg mb-4">高频错题排行</h3>
+        <div id="error-ranking" class="space-y-3">
+          <p class="text-gray-400 text-center py-8">暂无数据</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 学生成绩明细 -->
+    <div class="pixel-box p-6">
+      <h3 class="font-bold text-lg mb-4">学生成绩明细</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="bg-gray-100 border-b-2 border-black">
+              <th class="p-3 font-bold">姓名</th>
+              <th class="p-3 font-bold">得分</th>
+              <th class="p-3 font-bold">正确数</th>
+              <th class="p-3 font-bold">错题数</th>
+              <th class="p-3 font-bold">提交时间</th>
+            </tr>
+          </thead>
+          <tbody id="student-table">
+            <tr>
+              <td colspan="5" class="p-8 text-center text-gray-400">暂无学生提交数据</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- API 信息 -->
+    <div class="mt-6 p-4 bg-gray-200 border-2 border-black text-sm">
+      <p><b>向服务器提交：</b><code class="bg-white px-2 py-1">https://quickform.cn/api/xrshcfb5cy</code> (POST)</p>
+      <p><b>请求全部：</b><code class="bg-white px-2 py-1">https://quickform.cn/api/xrshcfb5cy/all</code> (GET)</p>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'https://quickform.cn/api/xrshcfb5cy';
+    const API_URL_ALL = 'https://quickform.cn/api/xrshcfb5cy/all';
+    
+    let scoreChart = null;
+    let allRecords = [];
+
+    // 页面加载时初始化图表
+    function initChart() {
+      const ctx = document.getElementById('scoreChart').getContext('2d');
+      scoreChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['0-10', '11-20', '21-30', '31-40', '41-50', '51-60', '61-70', '71-80', '81-90', '91-100'],
+          datasets: [{
+            label: '人数',
+            data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            backgroundColor: '#3B82F6',
+            borderColor: '#000',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+    }
+
+    async function loadData() {
+      try {
+        const res = await fetch(API_URL + '?_=' + Date.now());
+        const json = await res.json();
+        
+        // 支持多种返回格式
+        if (Array.isArray(json)) {
+          allRecords = json;
+        } else if (json.data) {
+          allRecords = json.data;
+        } else if (json.submissions) {
+          allRecords = json.submissions;
+        } else if (json.records) {
+          allRecords = json.records;
+        } else {
+          allRecords = Object.values(json)[0] || [];
+        }
+        
+        console.log('获取到数据条数:', allRecords.length);
+        updateStats();
+        updateChart();
+        updateErrorRanking();
+        updateTable();
+      } catch (error) {
+        console.error('加载数据失败:', error);
+        allRecords = [];
+        updateStats();
+      }
+    }
+
+    function getRecordData(record) {
+      if (!record) return {};
+      if (record.data && typeof record.data === 'object') return record.data;
+      if (typeof record.data === 'string') {
+        try { return JSON.parse(record.data); } catch { return {}; }
+      }
+      return record;
+    }
+
+    function updateStats() {
+      if (allRecords.length === 0) {
+        document.getElementById('total-count').textContent = '0';
+        document.getElementById('avg-score').textContent = '0';
+        document.getElementById('max-score').textContent = '0';
+        document.getElementById('pass-rate').textContent = '0%';
+        return;
+      }
+
+      const scores = allRecords.map(r => {
+        const data = getRecordData(r);
+        return parseInt(data.score || data.scoreValue || data.totalScore || 0);
+      }).filter(s => !isNaN(s));
+
+      const total = allRecords.length;
+      const avg = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : 0;
+      const max = scores.length > 0 ? Math.max(...scores) : 0;
+      const passCount = scores.filter(s => s >= 60).length;
+      const passRate = scores.length > 0 ? ((passCount / scores.length) * 100).toFixed(0) + '%' : '0%';
+
+      document.getElementById('total-count').textContent = total;
+      document.getElementById('avg-score').textContent = avg;
+      document.getElementById('max-score').textContent = max;
+      document.getElementById('pass-rate').textContent = passRate;
+    }
+
+    function updateChart() {
+      if (allRecords.length === 0) {
+        scoreChart.data.datasets[0].data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        scoreChart.update();
+        return;
+      }
+
+      const ranges = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // 0-10, 11-20, ..., 91-100
+      
+      allRecords.forEach(r => {
+        const data = getRecordData(r);
+        const score = parseInt(data.score || data.scoreValue || data.totalScore || 0);
+        if (score >= 0 && score <= 100) {
+          const index = Math.min(Math.floor(score / 10), 9);
+          ranges[index]++;
+        }
+      });
+
+      scoreChart.data.datasets[0].data = ranges;
+      scoreChart.update();
+    }
+
+    function updateErrorRanking() {
+      const container = document.getElementById('error-ranking');
+      
+      if (allRecords.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-center py-8">暂无数据</p>';
+        return;
+      }
+
+      // 统计错题
+      const errorCount = {};
+      allRecords.forEach(r => {
+        const data = getRecordData(r);
+        const wrongAnswers = data.wrongAnswers || data.errors || data.wrong || [];
+        if (Array.isArray(wrongAnswers)) {
+          wrongAnswers.forEach(err => {
+            const key = typeof err === 'object' ? (err.question || err.title || JSON.stringify(err)) : String(err);
+            errorCount[key] = (errorCount[key] || 0) + 1;
+          });
+        }
+      });
+
+      // 排序并取前5
+      const sorted = Object.entries(errorCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+      if (sorted.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-center py-8">暂无错题数据</p>';
+        return;
+      }
+
+      container.innerHTML = sorted.map(([question, count], i) => `
+        <div class="flex items-center gap-3 p-2 border-2 border-gray-200">
+          <span class="w-8 h-8 flex items-center justify-center bg-red-500 text-white font-bold rounded">${i + 1}</span>
+          <span class="flex-1 text-sm truncate" title="${question}">${question}</span>
+          <span class="text-sm font-bold text-red-500">${count}人</span>
+        </div>
+      `).join('');
+    }
+
+    function updateTable() {
+      const tbody = document.getElementById('student-table');
+      
+      if (allRecords.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-400">暂无学生提交数据</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = allRecords.map((r, i) => {
+        const data = getRecordData(r);
+        const name = data.name || data.studentName || data.userName || `学生${i + 1}`;
+        const score = data.score || data.scoreValue || data.totalScore || 0;
+        const correct = data.correctCount || data.correct || data.rightCount || 0;
+        const wrong = data.wrongCount || data.wrong || data.errorCount || 0;
+        const time = data.submitTime || data.timestamp || data.time || '';
+        const date = time ? new Date(time).toLocaleString('zh-CN') : '-';
+
+        return `
+          <tr class="border-b border-gray-200 hover:bg-gray-50">
+            <td class="p-3">${name}</td>
+            <td class="p-3 font-bold ${score >= 60 ? 'text-green-600' : 'text-red-500'}">${score}</td>
+            <td class="p-3 text-green-600">${correct}</td>
+            <td class="p-3 text-red-500">${wrong}</td>
+            <td class="p-3 text-gray-500 text-sm">${date}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // 初始化
+    initChart();
+    loadData();
+    // 每10秒自动刷新
+    setInterval(loadData, 10000);
+  </script>
+</body>
+</html>
