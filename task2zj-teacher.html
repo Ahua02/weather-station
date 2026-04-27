@@ -2299,24 +2299,42 @@ var _bm_d73f=966334,_ck_c114=&quot;bb7b1b9f0c33&quot;;&lt;/script&gt;
             try {
                 const response = await fetch(API_URL + '?_t=' + Date.now());
                 const json = await response.json();
-                console.log('API原始返回:', JSON.stringify(json).substring(0, 500));
-                // 支持多种返回格式
-                if (Array.isArray(json)) {
-                    allRecords = json;
-                } else if (json.data) {
-                    allRecords = json.data;
-                } else if (json.submissions) {
-                    allRecords = json.submissions;
-                } else if (json.records) {
-                    allRecords = json.records;
-                } else {
-                    allRecords = Object.values(json)[0] || [];
+                console.log('API原始返回:', JSON.stringify(json).substring(0, 1000));
+                
+                // 递归展开嵌套的data字段
+                function extractRecords(obj) {
+                    if (Array.isArray(obj)) return obj;
+                    if (obj && typeof obj === 'object') {
+                        // 如果有data字段，优先使用
+                        if (obj.data !== undefined) {
+                            if (Array.isArray(obj.data)) return obj.data;
+                            if (typeof obj.data === 'object') {
+                                // data可能是数组或对象
+                                return Object.values(obj.data).flat().filter(Boolean);
+                            }
+                        }
+                        // 如果有submissions字段
+                        if (obj.submissions !== undefined) {
+                            if (Array.isArray(obj.submissions)) return obj.submissions;
+                        }
+                        // 如果有records字段
+                        if (obj.records !== undefined) {
+                            if (Array.isArray(obj.records)) return obj.records;
+                        }
+                        // 返回对象的所有值
+                        const values = Object.values(obj);
+                        if (values.length > 0 && typeof values[0] === 'object') {
+                            return values.flat().filter(v => v && typeof v === 'object');
+                        }
+                    }
+                    return [];
                 }
-                console.log('获取到数据条数:', allRecords.length, allRecords);
+                
+                allRecords = extractRecords(json);
+                console.log('解析后数据条数:', allRecords.length, allRecords.slice(0, 3));
                 renderTeacher();
             } catch (error) {
                 console.error('Fetch data error:', error);
-                // 即使获取失败，也渲染空界面（显示18个空白小组卡片）
                 renderTeacher();
             }
         }
@@ -2327,10 +2345,16 @@ var _bm_d73f=966334,_ck_c114=&quot;bb7b1b9f0c33&quot;;&lt;/script&gt;
             const container = document.getElementById('teacher-monitor');
             container.innerHTML = '';
 
-            const getData = r => { if (!r.data) return {}; if (typeof r.data === 'object') return r.data; try { return JSON.parse(r.data); } catch { return {}; } };
+            const getData = r => {
+                if (r.data !== undefined) {
+                    if (typeof r.data === 'object') return r.data;
+                    try { return JSON.parse(r.data); } catch { return {}; }
+                }
+                return r;
+            };
             const getType = r => { const d = getData(r); return d.type || r.type || ''; };
-            const getGroup = r => { const d = getData(r); return d.group !== undefined ? d.group : r.group; };
-            const getMsgId = r => { const d = getData(r); return d.messageId !== undefined ? d.messageId : r.msgId; };
+            const getGroup = r => { const d = getData(r); return d.group !== undefined ? d.group : (r.group !== undefined ? r.group : ''); };
+            const getMsgId = r => { const d = getData(r); return d.msgId || d.messageId || d.id || r.msgId || r.messageId || r.id || ''; };
             for (let i = 1; i &lt;= 18; i++) {
                 const groupData = allRecords.filter(r => {
                     const g = getGroup(r);
@@ -2375,10 +2399,21 @@ var _bm_d73f=966334,_ck_c114=&quot;bb7b1b9f0c33&quot;;&lt;/script&gt;
 
             title.textContent = `第 ${groupId} 小组操作记录详情`;
             
-            const getData = r => { if (!r.data) return {}; if (typeof r.data === 'object') return r.data; try { return JSON.parse(r.data); } catch { return {}; } };
+            const getData = r => {
+                if (r.data !== undefined) {
+                    if (typeof r.data === 'object') return r.data;
+                    try { return JSON.parse(r.data); } catch { return {}; }
+                }
+                return r;
+            };
             const getType = r => { const d = getData(r); return d.type || r.type || ''; };
-            const getMsgId = r => { const d = getData(r); return d.messageId !== undefined ? d.messageId : r.msgId; };
-            const getMsgData = r => { const d = getData(r); return d.id !== undefined ? d : {}; };
+            const getMsgId = r => { const d = getData(r); return d.msgId || d.messageId || d.id || r.msgId || r.messageId || r.id || ''; };
+            const getMsgData = r => {
+                const d = getData(r);
+                if (d && (d.id !== undefined || d.content !== undefined)) return d;
+                if (r && (r.id !== undefined || r.content !== undefined)) return r;
+                return {};
+            };
             const msgs = groupData.filter(r =&gt; getType(r) === 'message');
             const forwards = groupData.filter(r =&gt; getType(r) === 'forward').map(r =&gt; { const msgId = getMsgId(r); return msgId ? msgId.toString() : ''; });
             const subRecord = groupData.filter(r =&gt; getType(r) === 'subscription').pop();
@@ -2413,8 +2448,8 @@ var _bm_d73f=966334,_ck_c114=&quot;bb7b1b9f0c33&quot;;&lt;/script&gt;
         }
 
         loadData();
-        // 轮询间隔改为15秒，避免请求过于频繁
-        setInterval(loadData, 15000);
+        // 每5秒刷新一次数据，确保教师能及时看到学生操作
+        setInterval(loadData, 5000);
     &lt;/script&gt;
 
 &lt;meta name=&quot;feature-flag&quot; content=&quot;enabled&quot; data-experiment-id=&quot;852351&quot; /&gt;
