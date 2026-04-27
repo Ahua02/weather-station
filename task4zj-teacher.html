@@ -156,20 +156,54 @@
 
     async function loadData() {
       try {
-        const res = await fetch(API_URL + '?_=' + Date.now());
-        const json = await res.json();
+        // 优先尝试使用 /all 端点获取所有数据
+        let json = null;
+        
+        // 首先尝试 /all 端点获取完整数据
+        try {
+          const resAll = await fetch(API_URL_ALL + '?_=' + Date.now());
+          if (resAll.ok) {
+            json = await resAll.json();
+            console.log('通过 /all 端点获取数据');
+          }
+        } catch (e) {
+          console.log('/all 端点获取失败，尝试普通端点');
+        }
+        
+        // 如果 /all 端点失败或返回空，使用普通端点
+        if (!json || (typeof json === 'object' && Object.keys(json).length === 0)) {
+          const res = await fetch(API_URL + '?_=' + Date.now());
+          json = await res.json();
+          console.log('通过普通端点获取数据');
+        }
         
         // 支持多种返回格式
         if (Array.isArray(json)) {
           allRecords = json;
         } else if (json.data) {
-          allRecords = json.data;
+          allRecords = Array.isArray(json.data) ? json.data : (Object.values(json.data)[0] || []);
         } else if (json.submissions) {
           allRecords = json.submissions;
         } else if (json.records) {
           allRecords = json.records;
+        } else if (typeof json === 'object') {
+          // 尝试提取嵌套的数据
+          const values = Object.values(json);
+          if (values.length > 0 && Array.isArray(values[0])) {
+            allRecords = values[0];
+          } else if (values.length > 0 && typeof values[0] === 'object') {
+            // 可能数据在嵌套的 data 字段中
+            const nestedData = values.find(v => v && (v.data || v.submissions || v.records));
+            if (nestedData) {
+              allRecords = nestedData.data || nestedData.submissions || nestedData.records || [];
+            } else {
+              allRecords = values;
+            }
+          } else {
+            allRecords = values;
+          }
         } else {
-          allRecords = Object.values(json)[0] || [];
+          allRecords = [];
         }
         
         console.log('获取到数据条数:', allRecords.length);

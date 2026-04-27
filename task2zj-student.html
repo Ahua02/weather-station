@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>任务2 - 悄悄话（发布-订阅模式体验）</title>
+  <title>悄悄话体验HTML版</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     .pixel-box {
@@ -64,36 +64,42 @@
       <div id="identity-text" class="font-bold"></div>
     </div>
 
-    <!-- 角色选择界面 -->
-    <div id="setup-screen" class="py-8">
+    <!-- 登录界面 -->
+    <div id="login-screen" class="py-8">
       <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold mb-2">🌊 任务2：悄悄话</h1>
-        <p class="text-gray-600">发布-订阅模式体验</p>
+        <h1 class="text-3xl font-bold mb-2">🌊 悄悄话体验HTML版</h1>
+        <p class="text-gray-600">发布-订阅模式</p>
       </div>
       
-      <div class="grid grid-cols-3 gap-4 mb-8 max-w-2xl mx-auto">
-        <div class="pixel-box p-4 text-center">
-          <div class="text-2xl mb-2">✍️</div>
-          <div class="font-bold text-orange-600">A 发布者</div>
-          <div class="text-xs text-gray-500 mt-1">编写并发送消息</div>
+      <div class="pixel-box p-8 max-w-md mx-auto">
+        <h2 class="font-bold text-xl mb-6 text-center">请输入你的信息</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="block font-bold mb-2">姓名</label>
+            <input type="text" id="student-name" class="w-full border-2 border-black p-3" placeholder="请输入姓名">
+          </div>
+          <div>
+            <label class="block font-bold mb-2">学号</label>
+            <input type="number" id="student-id" class="w-full border-2 border-black p-3" placeholder="请输入学号（1-54）" min="1" max="54">
+          </div>
+          <button onclick="loginAndStart()" class="w-full pixel-btn bg-orange-500 text-white py-4 text-lg mt-4">确认登录</button>
         </div>
-        <div class="pixel-box p-4 text-center">
-          <div class="text-2xl mb-2">🖥️</div>
-          <div class="font-bold text-green-600">B 代理者</div>
-          <div class="text-xs text-gray-500 mt-1">审核并转发消息</div>
-        </div>
-        <div class="pixel-box p-4 text-center">
-          <div class="text-2xl mb-2">👂</div>
-          <div class="font-bold text-blue-600">C 订阅者</div>
-          <div class="text-xs text-gray-500 mt-1">选择主题接收</div>
-        </div>
+        <p class="text-xs text-gray-500 mt-4 text-center"></p>
       </div>
+    </div>
 
-      <h2 class="text-center font-bold mb-4">选择你的角色（共18组，每组3人）</h2>
-      <div id="role-grid" class="grid grid-cols-6 md:grid-cols-9 gap-2 mb-8"></div>
+    <!-- 角色信息展示（登录后显示） -->
+    <div id="setup-screen" class="hidden py-8">
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold mb-2">🌊 悄悄话体验HTML版</h1>
+        <p class="text-gray-600">发布-订阅模式</p>
+      </div>
       
-      <div class="text-center">
-        <button onclick="enterGame()" class="pixel-btn bg-orange-500 text-white px-12 py-4 text-lg">进入游戏</button>
+      <div class="pixel-box p-8 max-w-md mx-auto text-center">
+        <div class="text-4xl mb-4" id="role-emoji">✍️</div>
+        <div class="font-bold text-2xl mb-2" id="role-name">A 发布者</div>
+        <div class="text-gray-600 mb-4" id="student-info"></div>
+        <button onclick="enterGame()" class="pixel-btn bg-orange-500 text-white px-12 py-4 text-lg">开始任务</button>
       </div>
     </div>
 
@@ -184,27 +190,56 @@
       currentRole: null,
       selectedTopicA: null,
       subsC: new Set(),
-      isSubscribed: false
+      isSubscribed: false,
+      studentName: '',
+      studentId: null
     };
+
+    // 登录并自动分配角色
+    function loginAndStart() {
+      const name = document.getElementById('student-name').value.trim();
+      const id = parseInt(document.getElementById('student-id').value);
+      
+      if (!name) {
+        alert('请输入姓名！');
+        return;
+      }
+      if (!id || id < 1 || id > 54) {
+        alert('学号必须在 1-54 之间！');
+        return;
+      }
+      
+      // 根据学号计算组号和角色
+      // 学号1,2,3 -> 第1组A,B,C
+      // 学号4,5,6 -> 第2组A,B,C
+      const group = Math.ceil(id / 3);
+      const roleIndex = (id - 1) % 3;
+      const roles = ['A', 'B', 'C'];
+      const role = roles[roleIndex];
+      
+      // 保存信息
+      state.currentGroup = group;
+      state.currentRole = role;
+      state.studentName = name;
+      state.studentId = id;
+      
+      // 显示角色信息
+      const emojis = { 'A': '✍️', 'B': '🖥️', 'C': '👂' };
+      const roleNames = { 'A': 'A 发布者', 'B': 'B 代理者', 'C': 'C 订阅者' };
+      const roleColors = { 'A': 'text-orange-600', 'B': 'text-green-600', 'C': 'text-blue-600' };
+      
+      document.getElementById('role-emoji').textContent = emojis[role];
+      document.getElementById('role-name').textContent = roleNames[role];
+      document.getElementById('role-name').className = `font-bold text-2xl mb-2 ${roleColors[role]}`;
+      document.getElementById('student-info').textContent = `${name} | 学号：${id} | 第${group}组`;
+      
+      // 切换到角色展示界面
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('setup-screen').classList.remove('hidden');
+    }
 
     // 初始化
     function init() {
-      const roleGrid = document.getElementById('role-grid');
-      
-      // 生成角色按钮
-      for (let i = 1; i <= 18; i++) {
-        ['A', 'B', 'C'].forEach(role => {
-          const btn = document.createElement('button');
-          const emoji = role === 'A' ? '✍️' : (role === 'B' ? '🖥️' : '👂');
-          btn.className = 'role-btn text-center';
-          btn.style.borderBottomColor = GROUP_COLORS[i - 1];
-          btn.style.borderBottomWidth = '4px';
-          btn.innerHTML = `<div class="text-lg">${emoji}</div><div class="font-bold text-xs">${i}${role}</div>`;
-          btn.onclick = () => selectRole(i, role, btn);
-          roleGrid.appendChild(btn);
-        });
-      }
-
       // 生成 A 的主题列表
       const listA = document.getElementById('topic-list-a');
       TOPICS.forEach(t => {
@@ -228,26 +263,13 @@
       setInterval(syncData, 2000);
     }
 
-    // 选择角色
-    function selectRole(group, role, btn) {
-      state.currentGroup = group;
-      state.currentRole = role;
-      document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('role-active'));
-      btn.classList.add('role-active');
-    }
-
     // 进入游戏
     function enterGame() {
-      if (!state.currentGroup || !state.currentRole) {
-        alert('请先选择你的角色！');
-        return;
-      }
-      
       document.getElementById('setup-screen').classList.add('hidden');
       document.getElementById('status-bar').classList.remove('hidden');
       
       const identityText = document.getElementById('identity-text');
-      identityText.innerHTML = `<span class="group-tag" style="background:${GROUP_COLORS[state.currentGroup - 1]}">组 ${state.currentGroup}</span> 角色 ${state.currentRole}`;
+      identityText.innerHTML = `<span class="font-bold mr-4">${state.studentName}</span><span class="text-gray-500 mr-2">学号：${state.studentId}</span><span class="group-tag" style="background:${GROUP_COLORS[state.currentGroup - 1]}">组 ${state.currentGroup}</span><span class="ml-2">角色 ${state.currentRole}</span>`;
 
       document.getElementById('role-a-screen').classList.add('hidden');
       document.getElementById('role-b-screen').classList.add('hidden');
