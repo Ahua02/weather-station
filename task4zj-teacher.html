@@ -132,10 +132,10 @@
       scoreChart = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: ['0-10', '11-20', '21-30', '31-40', '41-50', '51-60', '61-70', '71-80', '81-90', '91-100'],
+          labels: ['0-10', '11-20', '21-30', '31-40', '41-50', '51-60', '61-70', '71-80', '81-90', '91-100', '101-150'],
           datasets: [{
             label: '人数',
-            data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             backgroundColor: '#3B82F6',
             borderColor: '#000',
             borderWidth: 2
@@ -255,12 +255,12 @@
 
     function updateChart() {
       if (allRecords.length === 0) {
-        scoreChart.data.datasets[0].data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        scoreChart.data.datasets[0].data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         scoreChart.update();
         return;
       }
 
-      const ranges = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // 0-10, 11-20, ..., 91-100
+      const ranges = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // 0-10, 11-20, ..., 91-100, 101-150
       
       allRecords.forEach(r => {
         const data = getRecordData(r);
@@ -268,6 +268,8 @@
         if (score >= 0 && score <= 100) {
           const index = Math.min(Math.floor(score / 10), 9);
           ranges[index]++;
+        } else if (score > 100 && score <= 150) {
+          ranges[10]++; // 101-150
         }
       });
 
@@ -287,30 +289,50 @@
       const errorCount = {};
       allRecords.forEach(r => {
         const data = getRecordData(r);
-        const wrongAnswers = data.wrongAnswers || data.errors || data.wrong || [];
-        if (Array.isArray(wrongAnswers)) {
-          wrongAnswers.forEach(err => {
-            const key = typeof err === 'object' ? (err.question || err.title || JSON.stringify(err)) : String(err);
-            errorCount[key] = (errorCount[key] || 0) + 1;
+        // 支持多种错题字段名：wrongQuestions, wrongAnswers, errors, wrong
+        const wrongQuestions = data.wrongQuestions || data.wrongAnswers || data.errors || data.wrong || [];
+        if (Array.isArray(wrongQuestions)) {
+          wrongQuestions.forEach(err => {
+            // 支持多种错题格式：{q, question, title} 或直接是字符串
+            let key = '';
+            if (typeof err === 'object') {
+              key = err.q || err.question || err.title || err.content || JSON.stringify(err);
+            } else {
+              key = String(err);
+            }
+            if (key) {
+              errorCount[key] = (errorCount[key] || 0) + 1;
+            }
           });
         }
       });
 
-      // 排序并取前5
-      const sorted = Object.entries(errorCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      // 排序并取前10（改为显示更多）
+      const sorted = Object.entries(errorCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
 
       if (sorted.length === 0) {
         container.innerHTML = '<p class="text-gray-400 text-center py-8">暂无错题数据</p>';
         return;
       }
 
-      container.innerHTML = sorted.map(([question, count], i) => `
-        <div class="flex items-center gap-3 p-2 border-2 border-gray-200">
-          <span class="w-8 h-8 flex items-center justify-center bg-red-500 text-white font-bold rounded">${i + 1}</span>
-          <span class="flex-1 text-sm truncate" title="${question}">${question}</span>
-          <span class="text-sm font-bold text-red-500">${count}人</span>
-        </div>
-      `).join('');
+      // 计算最高错误次数，用于计算百分比
+      const maxCount = sorted[0][1];
+
+      container.innerHTML = sorted.map(([question, count], i) => {
+        const percentage = ((count / maxCount) * 100).toFixed(0);
+        return `
+          <div class="flex items-center gap-3 p-2 border-2 border-gray-200 hover:border-red-300 transition-colors">
+            <span class="w-8 h-8 flex items-center justify-center bg-red-500 text-white font-bold rounded">${i + 1}</span>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm truncate" title="${question}">${question}</div>
+              <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
+                <div class="bg-red-500 h-2 rounded-full" style="width: ${percentage}%"></div>
+              </div>
+            </div>
+            <span class="text-sm font-bold text-red-500 whitespace-nowrap">${count}人错</span>
+          </div>
+        `;
+      }).join('');
     }
 
     function updateTable() {
@@ -321,7 +343,16 @@
         return;
       }
 
-      tbody.innerHTML = allRecords.map((r, i) => {
+      // 按分数从高到低排序
+      const sortedRecords = [...allRecords].sort((a, b) => {
+        const dataA = getRecordData(a);
+        const dataB = getRecordData(b);
+        const scoreA = parseInt(dataA.score || dataA.scoreValue || dataA.totalScore || 0);
+        const scoreB = parseInt(dataB.score || dataB.scoreValue || dataB.totalScore || 0);
+        return scoreB - scoreA; // 降序排列
+      });
+
+      tbody.innerHTML = sortedRecords.map((r, i) => {
         const data = getRecordData(r);
         const name = data.name || data.studentName || data.userName || `学生${i + 1}`;
         const score = data.score || data.scoreValue || data.totalScore || 0;
