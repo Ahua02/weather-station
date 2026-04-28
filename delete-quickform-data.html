@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据管理工具</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+  <div class="max-w-lg mx-auto">
+    <h1 class="text-2xl font-bold mb-6">数据管理工具</h1>
+    
+    <div class="bg-white p-6 border-2 border-black shadow-lg mb-6">
+      <h2 class="font-bold text-lg mb-4">删除 quickform 数据</h2>
+      <p class="text-gray-600 mb-4">API: https://quickform.cn/api/mz86mfrqui</p>
+      
+      <div class="space-y-4">
+        <button onclick="fetchAndDelete()" class="w-full bg-red-500 text-white py-3 font-bold border-2 border-black hover:bg-red-600">
+          1. 获取并删除所有数据
+        </button>
+        
+        <button onclick="clearLocalStorage()" class="w-full bg-orange-500 text-white py-3 font-bold border-2 border-black hover:bg-orange-600">
+          2. 清空浏览器本地存储
+        </button>
+      </div>
+      
+      <div id="result" class="mt-4 p-4 bg-gray-100 border border-black hidden"></div>
+    </div>
+    
+    <div class="bg-white p-6 border-2 border-black shadow-lg">
+      <h2 class="font-bold text-lg mb-4">当前数据预览</h2>
+      <button onclick="loadData()" class="mb-4 bg-blue-500 text-white px-4 py-2 font-bold border-2 border-black">
+        刷新数据
+      </button>
+      <pre id="data-preview" class="bg-gray-800 text-green-400 p-4 overflow-auto max-h-64 text-xs rounded">点击上方按钮加载数据...</pre>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'https://quickform.cn/api/mz86mfrqui';
+    
+    async function loadData() {
+      const preview = document.getElementById('data-preview');
+      try {
+        const res = await fetch(API_URL + '?_=' + Date.now());
+        const json = await res.json();
+        const data = json.submissions || json.data || [];
+        preview.textContent = JSON.stringify(data, null, 2);
+        return data;
+      } catch (e) {
+        preview.textContent = '加载失败: ' + e.message;
+        return [];
+      }
+    }
+    
+    async function fetchAndDelete() {
+      const result = document.getElementById('result');
+      const preview = document.getElementById('data-preview');
+      result.classList.remove('hidden');
+      result.innerHTML = '<b>正在操作...</b>';
+      
+      try {
+        // 1. 获取所有数据
+        const res = await fetch(API_URL + '?_=' + Date.now());
+        const json = await res.json();
+        const data = json.submissions || json.data || [];
+        
+        if (data.length === 0) {
+          result.innerHTML = '<b class="text-green-600">数据已经是空的</b>';
+          preview.textContent = '[]';
+          return;
+        }
+        
+        result.innerHTML = `<b>找到 ${data.length} 条数据，正在删除...</b>`;
+        
+        // 2. 尝试通过 POST 发送清空请求（某些 API 支持）
+        // quickform 可能需要通过特定接口删除
+        
+        // 3. 尝试获取提交 ID 并逐个删除
+        for (let i = 0; i < data.length; i++) {
+          const item = data[i];
+          try {
+            // 尝试 DELETE 请求
+            const delRes = await fetch(API_URL + '/' + (item.id || item._id || i), {
+              method: 'DELETE'
+            });
+            result.innerHTML = `<b>正在删除... ${i + 1}/${data.length}</b>`;
+          } catch (e) {
+            console.log('删除失败', e);
+          }
+        }
+        
+        result.innerHTML = '<b class="text-orange-500">已尝试删除操作。请刷新页面检查是否成功。</b>';
+        
+        // 4. 再次获取确认
+        setTimeout(async () => {
+          const newData = await loadData();
+          result.innerHTML += `<br>剩余数据: ${newData.length} 条`;
+        }, 1000);
+        
+      } catch (e) {
+        result.innerHTML = '<b class="text-red-600">错误: ' + e.message + '</b>';
+      }
+    }
+    
+    function clearLocalStorage() {
+      localStorage.clear();
+      sessionStorage.clear();
+      document.getElementById('result').innerHTML = '<b class="text-green-600">浏览器本地存储已清空</b>';
+    }
+    
+    // 页面加载时自动获取数据
+    loadData();
+  </script>
+</body>
+</html>

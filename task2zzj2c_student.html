@@ -964,7 +964,8 @@
       var processedKey = 'mqtt_processed_' + state.currentGroup;
       var processed = JSON.parse(safeGetItem(processedKey) || '[]');
       
-      var groupMsgs = msgs.filter(function(m) { return m.group === state.currentGroup; });
+      // 过滤掉SYS:FWD系统消息，只显示A的真实消息
+      var groupMsgs = msgs.filter(function(m) { return m.group === state.currentGroup && !isSystemFwdMessage(m.content); });
       var groupSubs = subs[state.currentGroup + '_C'] || [];
       
       // A 的消息
