@@ -765,8 +765,16 @@
       processed.push(msgId);
       safeSetItem(processedKey, JSON.stringify(processed));
       
-      // 将转发记录发送到服务器，让 C 也能获取
-      postData({ type: 'forward', group: state.currentGroup, msgId: msgId, topicId: topicId });
+      // 将转发记录保存到全局转发记录（供其他设备通过API获取）
+      var globalForwards = JSON.parse(safeGetItem('mqtt_global_forwards') || '{}');
+      if (!globalForwards[state.currentGroup]) globalForwards[state.currentGroup] = [];
+      if (globalForwards[state.currentGroup].indexOf(msgId) === -1) {
+        globalForwards[state.currentGroup].push(msgId);
+      }
+      safeSetItem('mqtt_global_forwards', JSON.stringify(globalForwards));
+      
+      // 发送到API（使用message类型，content包含特殊转发标记）
+      postData({ type: 'message', group: state.currentGroup, topicId: topicId, content: '【SYS:FWD:' + msgId + '】' });
       
       syncData();
     }
@@ -869,15 +877,34 @@
               var hasForwards = false;
               records.forEach(function(r) {
                 var recData = r.data ? (typeof r.data === 'object' ? r.data : JSON.parse(r.data || '{}')) : r;
+                var group = recData.group || r.group;
+                var msgId = null;
+                
+                // 方式1: type为forward的记录
                 if (recData.type === 'forward') {
-                  var group = recData.group || r.group;
+                  msgId = recData.msgId;
+                }
+                // 方式2: message类型但content包含【SYS:FWD:xxx】标记
+                else if (recData.type === 'message' && recData.content && recData.content.indexOf('【SYS:FWD:') === 0) {
+                  var match = recData.content.match(/【SYS:FWD:(\d+)】/);
+                  if (match) msgId = parseInt(match[1]);
+                }
+                
+                if (msgId !== null) {
+                  var globalForwards = JSON.parse(safeGetItem('mqtt_global_forwards') || '{}');
+                  if (!globalForwards[group]) globalForwards[group] = [];
+                  if (globalForwards[group].indexOf(msgId) === -1) {
+                    globalForwards[group].push(msgId);
+                    hasForwards = true;
+                  }
+                  safeSetItem('mqtt_global_forwards', JSON.stringify(globalForwards));
+                  // 同时更新本组的转发状态
                   var forwardKey = 'mqtt_processed_' + group;
                   var forwarded = JSON.parse(safeGetItem(forwardKey) || '[]');
-                  if (forwarded.indexOf(recData.msgId) === -1) {
-                    forwarded.push(recData.msgId);
+                  if (forwarded.indexOf(msgId) === -1) {
+                    forwarded.push(msgId);
                     safeSetItem(forwardKey, JSON.stringify(forwarded));
                   }
-                  hasForwards = true;
                 }
               });
               
@@ -997,12 +1024,16 @@
       var processedKey = 'mqtt_processed_' + state.currentGroup;
       var processed = JSON.parse(safeGetItem(processedKey) || '[]');
       
+      // 也从全局转发记录获取转发状态（来自B设备的转发）
+      var globalForwards = JSON.parse(safeGetItem('mqtt_global_forwards') || '{}');
+      var groupForwards = globalForwards[state.currentGroup] || [];
+      
       var groupSubs = subs[state.currentGroup + '_C'] || [];
       var groupMsgs = msgs.filter(function(m) { return m.group === state.currentGroup; });
       
-      // 只显示已转发的消息
+      // 只显示已转发的消息（检查本地processed和全局mqtt_global_forwards）
       var receivedMsgs = groupMsgs.filter(function(m) { 
-        return processed.indexOf(m.id) > -1 && groupSubs.indexOf(m.topicId) > -1; 
+        return (processed.indexOf(m.id) > -1 || groupForwards.indexOf(m.id) > -1) && groupSubs.indexOf(m.topicId) > -1; 
       });
       
       // 检测新消息到达（仅在C角色界面可见时检测）
