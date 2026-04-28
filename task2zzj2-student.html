@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>悄悄话体验HTML版</title>
+  <style>
+    /* 基础样式 - 不依赖任何外部资源 */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f3f4f6; 
+      min-height: 100vh; 
+      line-height: 1.5;
+    }
+    .max-w-6xl { max-width: 72rem; margin: 0 auto; padding: 1rem; }
+    .mx-auto { margin-left: auto; margin-right: auto; }
+    .p-4 { padding: 1rem; }
+    .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+    .p-8 { padding: 2rem; }
+    .p-6 { padding: 1.5rem; }
+    .p-3 { padding: 0.75rem; }
+    .p-2 { padding: 0.5rem; }
+    .mb-4 { margin-bottom: 1rem; }
+    .mb-2 { margin-bottom: 0.5rem; }
+    .mb-6 { margin-bottom: 1.5rem; }
+    .mb-8 { margin-bottom: 2rem; }
+    .mt-4 { margin-top: 1rem; }
+    .mt-2 { margin-top: 0.5rem; }
+    .ml-4 { margin-left: 1rem; }
+    .ml-2 { margin-left: 0.5rem; }
+    .mr-4 { margin-right: 1rem; }
+    .mr-2 { margin-right: 0.5rem; }
+    .mr-3 { margin-right: 0.75rem; }
+    .space-y-6 > * + * { margin-top: 1.5rem; }
+    .space-y-3 > * + * { margin-top: 0.75rem; }
+    .space-y-2 > * + * { margin-top: 0.5rem; }
+    .space-y-4 > * + * { margin-top: 1rem; }
+    .flex { display: flex; }
+    .flex-1 { flex: 1; }
+    .flex-wrap { flex-wrap: wrap; }
+    .grid { display: block; }
+    .hidden { display: none !important; }
+    .text-center { text-align: center; }
+    .text-left { text-align: left; }
+    .text-xs { font-size: 0.75rem; }
+    .text-sm { font-size: 0.875rem; }
+    .text-lg { font-size: 1.125rem; }
+    .text-xl { font-size: 1.25rem; }
+    .text-2xl { font-size: 1.5rem; }
+    .text-3xl { font-size: 1.875rem; }
+    .text-4xl { font-size: 2.25rem; }
+    .font-bold { font-weight: 700; }
+    .font-bold { font-weight: 700; }
+    .font-medium { font-weight: 500; }
+    .text-orange-600 { color: #ea580c; }
+    .text-green-600 { color: #16a34a; }
+    .text-blue-600 { color: #2563eb; }
+    .text-gray-500 { color: #6b7280; }
+    .text-gray-600 { color: #4b5563; }
+    .text-white { color: white; }
+    .bg-orange-50 { background: #fff7ed; }
+    .bg-green-50 { background: #f0fdf4; }
+    .bg-blue-50 { background: #eff6ff; }
+    .bg-orange-500 { background: #f97316; }
+    .bg-green-500 { background: #22c55e; }
+    .bg-green-600 { background: #16a34a; }
+    .bg-blue-500 { background: #3b82f6; }
+    .bg-blue-600 { background: #2563eb; }
+    .bg-white { background: white; }
+    .bg-gray-100 { background: #f3f4f6; }
+    .border-2 { border-width: 2px; border-style: solid; }
+    .border-black { border-color: #000; }
+    .border-gray-200 { border-color: #e5e7eb; }
+    .border-orange-200 { border-color: #fed7aa; }
+    .border-orange-300 { border-color: #fdba74; }
+    .border-green-500 { border-color: #22c55e; }
+    .border-blue-300 { border-color: #93c5fd; }
+    .border-gray-300 { border-color: #d1d5db; }
+    .border-orange-400 { border-color: #fb923c; }
+    .border-blue-400 { border-color: #60a5fa; }
+    .border-green-400 { border-color: #4ade80; }
+    .w-full { width: 100%; }
+    .h-32 { height: 8rem; }
+    .h-64 { height: 16rem; }
+    .h-5 { height: 1.25rem; }
+    .w-5 { width: 1.25rem; }
+    .overflow-y-auto { overflow-y: auto; }
+    .gap-2 { gap: 0.5rem; }
+    .gap-6 { gap: 1.5rem; }
+    .rounded { border-radius: 0.25rem; }
+    .rounded-md { border-radius: 0.375rem; }
+    .rounded-9999 { border-radius: 9999px; }
+    .cursor-pointer { cursor: pointer; }
+    .uppercase { text-transform: uppercase; }
+    
+    /* 像素风格样式 */
+    .pixel-box {
+      background: white;
+      border: 2px solid #000;
+      box-shadow: 4px 4px 0 #000;
+    }
+    .pixel-btn {
+      padding: 8px 16px;
+      border: 2px solid #000;
+      box-shadow: 3px 3px 0 #000;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.1s;
+      background: #f97316;
+      color: white;
+      display: inline-block;
+      text-align: center;
+    }
+    .pixel-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 5px 5px 0 #000;
+    }
+    .task-banner {
+      padding: 12px 16px;
+      border: 2px solid;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    .task-banner-a { background: #fff7ed; border-color: #c2410c; color: #7c2d12; font-weight: 600; }
+    .task-banner-b { background: #f0fdf4; border-color: #15803d; color: #14532d; font-weight: 600; }
+    .task-banner-c { background: #eff6ff; border-color: #1d4ed8; color: #1e3a8a; font-weight: 600; }
+    .group-tag {
+      padding: 2px 8px;
+      color: white;
+      font-size: 10px;
+      border-radius: 4px;
+    }
+    
+    /* 响应式布局 */
+    @media (min-width: 768px) {
+      .md\:grid-cols-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+      .md\:grid-cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    }
+    
+    /* 输入框样式 */
+    input[type="text"], input[type="number"], textarea, select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid #000;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    textarea {
+      resize: none;
+      height: 8rem;
+    }
+    
+    /* 复选框样式 */
+    input[type="checkbox"] {
+      width: 1.25rem;
+      height: 1.25rem;
+      cursor: pointer;
+    }
+    
+    /* 滚动条样式 */
+    .overflow-y-auto::-webkit-scrollbar { width: 8px; }
+    .overflow-y-auto::-webkit-scrollbar-track { background: #f1f1f1; }
+    .overflow-y-auto::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+    .overflow-y-auto::-webkit-scrollbar-thumb:hover { background: #555; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="max-w-6xl mx-auto p-4">
+    <!-- 顶部状态栏 -->
+    <div id="status-bar" class="hidden mb-4 p-4 bg-white border-2 border-black flex justify-between items-center">
+      <div id="identity-text" class="font-bold"></div>
+    </div>
+
+    <!-- 登录界面 -->
+    <div id="login-screen" class="py-8">
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold mb-2">🌊 悄悄话体验HTML版</h1>
+        <p class="text-gray-600">发布-订阅模式</p>
+      </div>
+      
+      <div class="pixel-box p-8 max-w-md mx-auto">
+        <h2 class="font-bold text-xl mb-6 text-center">请输入你的信息</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="block font-bold mb-2">姓名</label>
+            <input type="text" id="student-name" class="w-full border-2 border-black p-3" placeholder="请输入姓名">
+          </div>
+          <div>
+            <label class="block font-bold mb-2">学号</label>
+            <input type="number" id="student-id" class="w-full border-2 border-black p-3" placeholder="请输入学号（1-54）" min="1" max="54">
+          </div>
+          <button onclick="loginAndStart()" class="w-full pixel-btn bg-orange-500 text-white py-4 text-lg mt-4">确认登录</button>
+        </div>
+        <p class="text-xs text-gray-500 mt-4 text-center"></p>
+      </div>
+    </div>
+
+    <!-- 角色信息展示（登录后显示） -->
+    <div id="setup-screen" class="hidden py-8">
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold mb-2">🌊 悄悄话体验HTML版</h1>
+        <p class="text-gray-600">发布-订阅模式</p>
+      </div>
+      
+      <div class="pixel-box p-8 max-w-md mx-auto text-center">
+        <div class="text-4xl mb-4" id="role-emoji">✍️</div>
+        <div class="font-bold text-2xl mb-2" id="role-name">A 发布者</div>
+        <div class="text-gray-600 mb-4" id="student-info"></div>
+        <button onclick="enterGame()" class="pixel-btn bg-orange-500 text-white px-12 py-4 text-lg">开始任务</button>
+      </div>
+    </div>
+
+    <!-- 角色 A 界面 -->
+    <section id="role-a-screen" class="hidden space-y-6">
+      <div class="task-banner task-banner-a">✍️ 你的任务：作为发布者，请选择一个主题，编写并发送消息。</div>
+      
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="pixel-box p-6">
+          <h3 class="font-bold mb-4">选择主题</h3>
+          <div id="topic-list-a" class="space-y-2"></div>
+        </div>
+        
+        <div class="pixel-box p-6">
+          <h3 class="font-bold mb-4">发送消息</h3>
+          <textarea id="msg-input" class="w-full border-2 border-black p-3 h-32 resize-none" placeholder="输入你的消息内容..."></textarea>
+          <button onclick="sendMessage()" class="mt-4 w-full pixel-btn bg-orange-500 text-white">发送消息</button>
+        </div>
+      </div>
+
+      <div class="pixel-box p-6">
+        <h3 class="font-bold mb-4">📤 已发送的消息</h3>
+        <div id="history-a" class="space-y-3"></div>
+      </div>
+    </section>
+
+    <!-- 角色 B 界面 -->
+    <section id="role-b-screen" class="hidden space-y-6">
+      <div class="flex justify-between items-center">
+        <div class="task-banner task-banner-b flex-1">🖥️ 你的任务：作为代理者，请审核 A 的消息并手动转发给订阅的 C。</div>
+        <button onclick="syncData(); alert('已刷新数据！')" class="pixel-btn bg-green-500 text-white ml-4">🔄 刷新数据</button>
+      </div>
+      
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="pixel-box p-6">
+          <h3 class="font-bold text-gray-500 text-sm uppercase mb-4">A 发送的消息</h3>
+          <div id="b-incoming" class="space-y-3 h-64 overflow-y-auto"></div>
+        </div>
+        
+        <div class="pixel-box p-6">
+          <h3 class="font-bold text-gray-500 text-sm uppercase mb-4">C 订阅的主题</h3>
+          <div id="b-subscriptions" class="flex flex-wrap gap-2"></div>
+        </div>
+        
+        <div class="pixel-box p-6">
+          <h3 class="font-bold text-gray-500 text-sm uppercase mb-4">转发给 C 的消息</h3>
+          <div id="b-outgoing" class="space-y-3 h-64 overflow-y-auto"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 角色 C 界面 -->
+    <section id="role-c-screen" class="hidden space-y-6">
+      <div class="flex justify-between items-center">
+        <div class="task-banner task-banner-c flex-1">👂 你的任务：作为订阅者，请选择感兴趣的主题，接收转发来的消息。</div>
+        <button onclick="syncData(); alert('已刷新数据！')" class="pixel-btn bg-blue-500 text-white ml-4">🔄 刷新数据</button>
+      </div>
+      
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="pixel-box p-6">
+          <h3 class="font-bold mb-4">选择订阅主题</h3>
+          <div id="topic-list-c" class="space-y-2"></div>
+          <button id="sub-btn" onclick="confirmSubscription()" class="mt-4 w-full pixel-btn bg-blue-600 text-white">确认订阅</button>
+        </div>
+        
+        <div class="pixel-box p-6">
+          <h3 class="font-bold mb-4">📥 收到的消息</h3>
+          <div id="msg-list-c" class="space-y-3"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // 检测是否是刷新操作（兼容所有浏览器）
+    // 方法1: 检查 performance.navigation（旧API，但兼容性最好）
+    var isRefresh = false;
+    try {
+      if (performance.navigation && performance.navigation.type === 1) {
+        isRefresh = true;
+      }
+    } catch (e) {}
+    
+    // 配置
+    var API_URL = 'https://quickform.cn/api/mz86mfrqui';
+    var TOPICS = [
+      { id: 'game', name: '🎮 游戏攻略', color: '#ff6b6b' },
+      { id: 'tech', name: '🤖 AI黑科技', color: '#4ecdc4' },
+      { id: 'school', name: '🏫 校园趣事', color: '#ffd93d' },
+      { id: 'music', name: '🎵 流行音乐', color: '#6c5ce7' },
+      { id: 'sport', name: '🏀 运动健身', color: '#a8e6cf' }
+    ];
+    var GROUP_COLORS = ['#ff5600', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#6366f1', '#d946ef', '#14b8a6', '#f97316', '#ef4444', '#64748b', '#a855f7', '#0ea5e9', '#22c55e', '#71717a'];
+    
+    // 状态
+    var state = {
+      currentGroup: null,
+      currentRole: null,
+      selectedTopicA: null,
+      subsC: [], // 用数组替代Set，兼容IE
+      isSubscribed: false,
+      studentName: '',
+      studentId: null
+    };
+    
+    // Set兼容函数（用数组实现）
+    function createSet() { return []; }
+    function setAdd(set, item) { if (set.indexOf(item) === -1) set.push(item); }
+    function setDelete(set, item) { var idx = set.indexOf(item); if (idx > -1) set.splice(idx, 1); }
+    function setHas(set, item) { return set.indexOf(item) !== -1; }
+    function setForEach(set, fn) { for (var i = 0; i < set.length; i++) fn(set[i], set[i], set); }
+    function setSize(set) { return set.length; }
+
+    // 安全获取localStorage
+    function safeGetItem(key) {
+      try {
+        return localStorage.getItem(key);
+      } catch (e) {
+        console.warn('localStorage不可用:', e);
+        return null;
+      }
+    }
+
+    // 安全保存localStorage
+    function safeSetItem(key, value) {
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch (e) {
+        console.warn('localStorage保存失败:', e);
+        return false;
+      }
+    }
+
+    // 安全移除localStorage
+    function safeRemoveItem(key) {
+      try {
+        localStorage.removeItem(key);
+      } catch (e) {
+        console.warn('localStorage移除失败:', e);
+      }
+    }
+
+    // 获取基于组和角色的独立存储键
+    function getStateKey() {
+      if (!state.currentGroup || !state.currentRole) {
+        return 'task2_student_state';
+      }
+      return 'task2_student_state_g' + state.currentGroup + '_' + state.currentRole;
+    }
+
+    // 保存状态到 localStorage（每个角色独立存储）
+    function saveState() {
+      if (!state.currentGroup || !state.currentRole) return;
+      var toSave = {
+        currentGroup: state.currentGroup,
+        currentRole: state.currentRole,
+        selectedTopicA: state.selectedTopicA,
+        subsC: state.subsC.slice(),
+        isSubscribed: state.isSubscribed,
+        studentName: state.studentName,
+        studentId: state.studentId
+      };
+      safeSetItem(getStateKey(), JSON.stringify(toSave));
+    }
+
+    // 从 localStorage 恢复状态（基于学号恢复对应角色状态）
+    function restoreState() {
+      var nameInput = document.getElementById('student-name');
+      var idInput = document.getElementById('student-id');
+      var studentId = idInput ? parseInt(idInput.value) : 0;
+      if (!studentId) studentId = parseInt(safeGetItem('task2_student_last_id')) || 0;
+      var name = nameInput ? nameInput.value.trim() : safeGetItem('task2_student_last_name') || '';
+      
+      // 清除旧的全局状态引用
+      safeRemoveItem('task2_student_state');
+      
+      // 如果有学号，尝试恢复对应角色状态
+      if (studentId && name) {
+        var group = Math.ceil(studentId / 3);
+        var roleIndex = (studentId - 1) % 3;
+        var roles = ['A', 'B', 'C'];
+        var role = roles[roleIndex];
+        
+        var stateKey = 'task2_student_state_g' + group + '_' + role;
+        var saved = safeGetItem(stateKey);
+        
+        if (saved) {
+          try {
+            var parsed = JSON.parse(saved);
+            state.currentGroup = parsed.currentGroup;
+            state.currentRole = parsed.currentRole;
+            state.selectedTopicA = parsed.selectedTopicA;
+            state.subsC = parsed.subsC || [];
+            state.isSubscribed = parsed.isSubscribed;
+            state.studentName = parsed.studentName;
+            state.studentId = parsed.studentId;
+            return true;
+          } catch (e) {
+            console.error('恢复状态失败:', e);
+          }
+        }
+      }
+      return false;
+    }
+
+    // 登录并自动分配角色
+    function loginAndStart() {
+      var name = document.getElementById('student-name').value.trim();
+      var id = parseInt(document.getElementById('student-id').value);
+      
+      if (!name) {
+        alert('请输入姓名！');
+        return;
+      }
+      if (!id || id < 1 || id > 54) {
+        alert('学号必须在 1-54 之间！');
+        return;
+      }
+      
+      // 根据学号计算组号和角色
+      var group = Math.ceil(id / 3);
+      var roleIndex = (id - 1) % 3;
+      var roles = ['A', 'B', 'C'];
+      var role = roles[roleIndex];
+      
+      // 保存信息
+      state.currentGroup = group;
+      state.currentRole = role;
+      state.studentName = name;
+      state.studentId = id;
+      
+      // 保存学号和姓名到全局键（用于刷新后恢复）
+      safeSetItem('task2_student_last_id', id);
+      safeSetItem('task2_student_last_name', name);
+      
+      // 立即保存当前角色状态
+      saveState();
+      
+      // 显示角色信息
+      var emojis = { 'A': '✍️', 'B': '🖥️', 'C': '👂' };
+      var roleNames = { 'A': 'A 发布者', 'B': 'B 代理者', 'C': 'C 订阅者' };
+      var roleColors = { 'A': 'text-orange-600', 'B': 'text-green-600', 'C': 'text-blue-600' };
+      
+      document.getElementById('role-emoji').textContent = emojis[role];
+      document.getElementById('role-name').textContent = roleNames[role];
+      document.getElementById('role-name').className = 'font-bold text-2xl mb-2 ' + roleColors[role];
+      document.getElementById('student-info').textContent = name + ' | 学号：' + id + ' | 第' + group + '组';
+      
+      // 切换到角色展示界面
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('setup-screen').classList.remove('hidden');
+    }
+
+    // 初始化
+    function init() {
+      // 生成 A 的主题列表
+      var listA = document.getElementById('topic-list-a');
+      TOPICS.forEach(function(t) {
+        var btn = document.createElement('button');
+        btn.className = 'w-full text-left p-3 border-2 border-gray-200 hover:border-black transition-all';
+        btn.style.color = '#374151';
+        btn.innerHTML = '<span style="color:' + t.color + ';font-weight:bold">■</span> <span style="font-size:15px;font-weight:500">' + t.name + '</span>';
+        var topic = t; // 闭包变量
+        btn.onclick = function() { selectTopicA(topic, btn); };
+        listA.appendChild(btn);
+      });
+
+      // 生成 C 的主题列表
+      var listC = document.getElementById('topic-list-c');
+      TOPICS.forEach(function(t) {
+        var label = document.createElement('label');
+        label.className = 'flex items-center p-3 border-2 border-gray-200 hover:border-blue-400 cursor-pointer';
+        label.style.color = '#374151';
+        label.innerHTML = '<input type="checkbox" class="mr-3 w-5 h-5" onchange="toggleSub(\'' + t.id + '\')"><span style="font-size:15px;font-weight:500">' + t.name + '</span>';
+        listC.appendChild(label);
+      });
+
+      // 尝试恢复之前的状态（仅在非刷新操作时恢复）
+      if (!isRefresh && restoreState() && state.currentGroup && state.currentRole && state.studentName) {
+        // 跳过登录界面，直接进入游戏
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('setup-screen').classList.add('hidden');
+        document.getElementById('status-bar').classList.remove('hidden');
+        
+        var identityText = document.getElementById('identity-text');
+        identityText.innerHTML = '<span class="font-bold mr-4">' + state.studentName + '</span><span class="text-gray-500 mr-2">学号：' + state.studentId + '</span><span class="group-tag" style="background:' + GROUP_COLORS[state.currentGroup - 1] + '">组 ' + state.currentGroup + '</span><span class="ml-2">角色 ' + state.currentRole + '</span>';
+
+        document.getElementById('role-a-screen').classList.add('hidden');
+        document.getElementById('role-b-screen').classList.add('hidden');
+        document.getElementById('role-c-screen').classList.add('hidden');
+
+        if (state.currentRole === 'A') {
+          document.getElementById('role-a-screen').classList.remove('hidden');
+          // 恢复A选择的主题
+          if (state.selectedTopicA) {
+            var foundTopic = null;
+            for (var i = 0; i < TOPICS.length; i++) {
+              if (TOPICS[i].id === state.selectedTopicA) { foundTopic = TOPICS[i]; break; }
+            }
+            if (foundTopic) {
+              var btns = document.querySelectorAll('#topic-list-a button');
+              for (var j = 0; j < btns.length; j++) {
+                if (btns[j].innerHTML.indexOf(foundTopic.name) > -1) {
+                  selectTopicA(foundTopic, btns[j]);
+                  break;
+                }
+              }
+            }
+          }
+        }
+        if (state.currentRole === 'B') document.getElementById('role-b-screen').classList.remove('hidden');
+        if (state.currentRole === 'C') {
+          document.getElementById('role-c-screen').classList.remove('hidden');
+          // 恢复C的订阅主题勾选状态
+          for (var k = 0; k < state.subsC.length; k++) {
+            var topicId = state.subsC[k];
+            var checkboxes = document.querySelectorAll('#topic-list-c input');
+            for (var l = 0; l < checkboxes.length; l++) {
+              var cb = checkboxes[l];
+              if (cb.onchange && cb.onchange.toString().indexOf(topicId) > -1) {
+                cb.checked = true;
+              }
+            }
+          }
+          // 恢复C的订阅状态
+          if (state.isSubscribed) {
+            var subBtn = document.getElementById('sub-btn');
+            subBtn.textContent = '✓ 订阅成功';
+            subBtn.style.backgroundColor = '#9ca3af';
+            subBtn.disabled = true;
+            // 禁用主题选择
+            var cbs = document.querySelectorAll('#topic-list-c input');
+            for (var m = 0; m < cbs.length; m++) { cbs[m].disabled = true; }
+          }
+        }
+        
+        // 同步数据并渲染
+        syncData();
+      }
+
+      // 启动数据同步（每2秒）
+      setInterval(syncData, 2000);
+    }
+
+    // 进入游戏
+    function enterGame() {
+      // 保存状态，以便刷新后恢复
+      saveState();
+      
+      document.getElementById('setup-screen').classList.add('hidden');
+      document.getElementById('status-bar').classList.remove('hidden');
+      
+      var identityText = document.getElementById('identity-text');
+      identityText.innerHTML = '<span class="font-bold mr-4">' + state.studentName + '</span><span class="text-gray-500 mr-2">学号：' + state.studentId + '</span><span class="group-tag" style="background:' + GROUP_COLORS[state.currentGroup - 1] + '">组 ' + state.currentGroup + '</span><span class="ml-2">角色 ' + state.currentRole + '</span>';
+
+      document.getElementById('role-a-screen').classList.add('hidden');
+      document.getElementById('role-b-screen').classList.add('hidden');
+      document.getElementById('role-c-screen').classList.add('hidden');
+
+      if (state.currentRole === 'A') document.getElementById('role-a-screen').classList.remove('hidden');
+      if (state.currentRole === 'B') document.getElementById('role-b-screen').classList.remove('hidden');
+      if (state.currentRole === 'C') {
+        document.getElementById('role-c-screen').classList.remove('hidden');
+        // 如果已订阅，禁用主题选择
+        if (state.isSubscribed) {
+          var cbs = document.querySelectorAll('#topic-list-c input');
+          for (var i = 0; i < cbs.length; i++) { cbs[i].disabled = true; }
+        }
+      }
+      
+      syncData();
+    }
+
+    // 选择主题 A
+    function selectTopicA(topic, btn) {
+      state.selectedTopicA = topic.id;
+      var btns = document.querySelectorAll('#topic-list-a button');
+      for (var i = 0; i < btns.length; i++) {
+        btns[i].classList.remove('border-black', 'bg-orange-50');
+      }
+      btn.classList.add('border-black', 'bg-orange-50');
+    }
+
+    // 切换订阅（订阅后不能修改）
+    function toggleSub(id) {
+      if (state.isSubscribed) return; // 已订阅后不能修改
+      var idx = state.subsC.indexOf(id);
+      if (idx > -1) state.subsC.splice(idx, 1);
+      else state.subsC.push(id);
+    }
+
+    // 发送消息
+    function sendMessage() {
+      var content = document.getElementById('msg-input').value.trim();
+      if (!state.selectedTopicA || !content) {
+        alert('请选择主题并输入内容');
+        return;
+      }
+      
+      var msg = {
+        group: state.currentGroup,
+        topicId: state.selectedTopicA,
+        content: content,
+        timestamp: Date.now(),
+        id: Date.now()
+      };
+      
+      // 保存到本地
+      var msgs = JSON.parse(safeGetItem('mqtt_msgs') || '[]');
+      msgs.push(msg);
+      safeSetItem('mqtt_msgs', JSON.stringify(msgs));
+      
+      // 发送到服务器（可选，静默失败）
+      postData({ type: 'message', group: msg.group, topicId: msg.topicId, content: msg.content });
+      
+      document.getElementById('msg-input').value = '';
+      syncData();
+      alert('发送成功！');
+    }
+
+    // 确认订阅
+    function confirmSubscription() {
+      if (state.subsC.length === 0) {
+        alert('请选择至少一个主题');
+        return;
+      }
+      
+      var data = {
+        group: state.currentGroup,
+        type: 'subscription',
+        topics: state.subsC.slice()
+      };
+      
+      // 保存到本地
+      var subs = JSON.parse(safeGetItem('mqtt_subs') || '{}');
+      subs[state.currentGroup + '_C'] = state.subsC.slice();
+      safeSetItem('mqtt_subs', JSON.stringify(subs));
+      
+      // 发送到服务器（可选，静默失败）
+      postData(data);
+      
+      state.isSubscribed = true;
+      var btn = document.getElementById('sub-btn');
+      btn.textContent = '✓ 订阅成功';
+      btn.style.backgroundColor = '#9ca3af';
+      btn.disabled = true;
+      
+      // 禁用主题选择复选框
+      var cbs = document.querySelectorAll('#topic-list-c input');
+      for (var i = 0; i < cbs.length; i++) { cbs[i].disabled = true; }
+      
+      // 保存状态
+      saveState();
+      
+      syncData();
+    }
+
+    // 手动转发消息（B 角色）
+    function forwardMessage(msgId, topicId) {
+      var processedKey = 'mqtt_processed_' + state.currentGroup;
+      var processed = JSON.parse(safeGetItem(processedKey) || '[]');
+      if (processed.indexOf(msgId) > -1) return;
+      
+      processed.push(msgId);
+      safeSetItem(processedKey, JSON.stringify(processed));
+      
+      syncData();
+    }
+
+    // 发送数据到服务器（使用XMLHttpRequest兼容IE）
+    function postData(data) {
+      try {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', API_URL, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        var payload = JSON.stringify({ type: data.type, group: data.group, topicId: data.topicId, content: data.content, topics: data.topics, timestamp: Date.now() });
+        xhr.send(payload);
+      } catch (e) {
+        // 静默失败
+      }
+    }
+
+    // 同步数据（兼容IE的写法）
+    function syncData() {
+      // 优先使用本地数据
+      renderWithLocalData();
+      
+      // 尝试获取远程数据（静默失败）
+      try {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', API_URL + '?_t=' + Date.now(), true);
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+            try {
+              var json = JSON.parse(xhr.responseText);
+              
+              // 递归展开嵌套的data字段
+              function extractRecords(obj) {
+                if (Array.isArray(obj)) return obj;
+                if (obj && typeof obj === 'object') {
+                  if (obj.data !== undefined) {
+                    if (Array.isArray(obj.data)) return obj.data;
+                    if (typeof obj.data === 'object') {
+                      return Object.keys(obj.data).map(function(k) { return obj.data[k]; }).reduce(function(a, b) { return a.concat(b); }, []).filter(Boolean);
+                    }
+                  }
+                  if (obj.submissions !== undefined && Array.isArray(obj.submissions)) return obj.submissions;
+                  if (obj.records !== undefined && Array.isArray(obj.records)) return obj.records;
+                  var values = Object.keys(obj).map(function(k) { return obj[k]; });
+                  if (values.length > 0 && typeof values[0] === 'object') {
+                    return values.reduce(function(a, b) { return a.concat(b); }, []).filter(function(v) { return v && typeof v === 'object'; });
+                  }
+                }
+                return [];
+              }
+              
+              var records = extractRecords(json);
+              
+              // 处理远程数据 - 合并本地和远程消息
+              var remoteMsgs = [];
+              records.forEach(function(r) {
+                var recData = r.data ? (typeof r.data === 'object' ? r.data : JSON.parse(r.data || '{}')) : r;
+                if (recData.type === 'message') {
+                  remoteMsgs.push({
+                    group: recData.group || r.group,
+                    topicId: recData.topicId,
+                    content: recData.content,
+                    timestamp: recData.timestamp || r.timestamp,
+                    id: recData.timestamp || r.timestamp || Date.now()
+                  });
+                }
+              });
+              
+              // 合并本地和远程消息（去重）
+              if (remoteMsgs.length > 0) {
+                var localMsgs = JSON.parse(safeGetItem('mqtt_msgs') || '[]');
+                var mergedMsgs = localMsgs.slice();
+                remoteMsgs.forEach(function(rm) {
+                  var exists = localMsgs.some(function(lm) { return lm.id === rm.id; });
+                  if (!exists) {
+                    mergedMsgs.push(rm);
+                  }
+                });
+                safeSetItem('mqtt_msgs', JSON.stringify(mergedMsgs));
+              }
+              
+              // 处理订阅数据
+              var hasSubs = false;
+              var subs = {};
+              records.forEach(function(r) {
+                var recData = r.data ? (typeof r.data === 'object' ? r.data : JSON.parse(r.data || '{}')) : r;
+                if (recData.type === 'subscription') {
+                  var key = (recData.group || r.group) + '_C';
+                  subs[key] = recData.topics || [];
+                  hasSubs = true;
+                }
+              });
+              if (hasSubs) {
+                var localSubs = JSON.parse(safeGetItem('mqtt_subs') || '{}');
+                for (var k in subs) { localSubs[k] = subs[k]; }
+                safeSetItem('mqtt_subs', JSON.stringify(localSubs));
+              }
+              
+              // 根据当前角色渲染
+              renderWithLocalData();
+            } catch (e2) {
+              // JSON解析失败，静默忽略
+            }
+          }
+        };
+        xhr.send();
+      } catch (e) {
+        // 网络请求失败，静默忽略
+      }
+    }
+
+    // 使用本地数据渲染
+    function renderWithLocalData() {
+      if (state.currentRole === 'A') renderHistoryA();
+      if (state.currentRole === 'B') renderRoleB();
+      if (state.currentRole === 'C') renderRoleC();
+    }
+
+    // 渲染 A 的历史（兼容IE）
+    function renderHistoryA() {
+      var msgs = JSON.parse(safeGetItem('mqtt_msgs') || '[]');
+      var groupMsgs = msgs.filter(function(m) { return m.group === state.currentGroup; });
+      var container = document.getElementById('history-a');
+      
+      if (groupMsgs.length === 0) {
+        container.innerHTML = '<p style="color:#6b7280;text-align:center;padding:2rem">暂无已发送的消息</p>';
+        return;
+      }
+      
+      var html = '';
+      groupMsgs.forEach(function(m) {
+        var topic = null;
+        for (var i = 0; i < TOPICS.length; i++) {
+          if (TOPICS[i].id === m.topicId) { topic = TOPICS[i]; break; }
+        }
+        html += '<div class="p-3 border-2 border-orange-300 bg-orange-50"><span class="font-bold text-sm" style="color:#fff;background:' + (topic ? topic.color : '#999') + ';padding:2px 10px;border-radius:4px">' + (topic ? topic.name : '') + '</span> <span style="color:#111827;font-size:14px;font-weight:500">' + escapeHtml(m.content) + '</span></div>';
+      });
+      container.innerHTML = html;
+    }
+
+    // 渲染 B 界面（兼容IE）
+    function renderRoleB() {
+      var msgs = JSON.parse(safeGetItem('mqtt_msgs') || '[]');
+      var subs = JSON.parse(safeGetItem('mqtt_subs') || '{}');
+      var processedKey = 'mqtt_processed_' + state.currentGroup;
+      var processed = JSON.parse(safeGetItem(processedKey) || '[]');
+      
+      var groupMsgs = msgs.filter(function(m) { return m.group === state.currentGroup; });
+      var groupSubs = subs[state.currentGroup + '_C'] || [];
+      
+      // A 的消息
+      var incoming = document.getElementById('b-incoming');
+      if (groupMsgs.length === 0) {
+        incoming.innerHTML = '<p style="color:#6b7280;text-align:center;padding:2rem">暂无消息</p>';
+      } else {
+        var incomingHtml = '';
+        groupMsgs.forEach(function(m) {
+          var topic = null;
+          for (var i = 0; i < TOPICS.length; i++) {
+            if (TOPICS[i].id === m.topicId) { topic = TOPICS[i]; break; }
+          }
+          var isProcessed = processed.indexOf(m.id) > -1;
+          var isMatched = groupSubs.indexOf(m.topicId) > -1;
+          var topicColor = topic ? topic.color : '#999';
+          var topicName = topic ? topic.name : '';
+          var borderClass = isMatched ? 'border-green-500 bg-green-50' : 'border-gray-200';
+          var btnHtml = !isProcessed && isMatched ? '<button onclick="forwardMessage(' + m.id + ',\'' + m.topicId + '\')" class="ml-2 text-sm" style="background:#16a34a;color:white;border:none;padding:4px 12px;font-weight:bold;cursor:pointer;border-radius:4px">转发</button>' : '';
+          var statusHtml = isProcessed ? '<span style="color:#15803d;font-size:13px;font-weight:bold">已转发</span>' : '';
+          incomingHtml += '<div class="p-3 border-2 ' + borderClass + '"><div class="flex justify-between items-start"><div><span class="font-bold text-sm" style="color:#fff;background:' + topicColor + ';padding:2px 8px;border-radius:4px">' + topicName + '</span> <span style="color:#111827;font-size:14px;font-weight:500">' + escapeHtml(m.content) + '</span></div>' + btnHtml + statusHtml + '</div></div>';
+        });
+        incoming.innerHTML = incomingHtml;
+      }
+      
+      // C 的订阅
+      var subscriptions = document.getElementById('b-subscriptions');
+      if (groupSubs.length === 0) {
+        subscriptions.innerHTML = '<p style="color:#6b7280;font-size:14px">暂无订阅</p>';
+      } else {
+        var subsHtml = '';
+        groupSubs.forEach(function(s) {
+          var topic = null;
+          for (var i = 0; i < TOPICS.length; i++) {
+            if (TOPICS[i].id === s) { topic = TOPICS[i]; break; }
+          }
+          subsHtml += '<span class="px-3 py-1 text-sm" style="background:' + (topic ? topic.color : '#999') + ';color:white;border-radius:9999px;font-weight:600">' + (topic ? topic.name : '') + '</span>';
+        });
+        subscriptions.innerHTML = subsHtml;
+      }
+      
+      // B 转发的消息
+      var outgoing = document.getElementById('b-outgoing');
+      var forwardedMsgs = groupMsgs.filter(function(m) { return processed.indexOf(m.id) > -1; });
+      if (forwardedMsgs.length === 0) {
+        outgoing.innerHTML = '<p style="color:#6b7280;text-align:center;padding:2rem">暂无转发</p>';
+      } else {
+        var outgoingHtml = '';
+        forwardedMsgs.forEach(function(m) {
+          var topic = null;
+          for (var i = 0; i < TOPICS.length; i++) {
+            if (TOPICS[i].id === m.topicId) { topic = TOPICS[i]; break; }
+          }
+          outgoingHtml += '<div class="p-3 border-2 border-green-500 bg-green-50"><span class="font-bold text-sm" style="color:#fff;background:' + (topic ? topic.color : '#999') + ';padding:2px 8px;border-radius:4px">' + (topic ? topic.name : '') + '</span> <span style="color:#111827;font-size:14px;font-weight:500">' + escapeHtml(m.content) + '</span></div>';
+        });
+        outgoing.innerHTML = outgoingHtml;
+      }
+    }
+
+    // 渲染 C 界面（兼容IE）
+    function renderRoleC() {
+      var msgs = JSON.parse(safeGetItem('mqtt_msgs') || '[]');
+      var subs = JSON.parse(safeGetItem('mqtt_subs') || '{}');
+      var processedKey = 'mqtt_processed_' + state.currentGroup;
+      var processed = JSON.parse(safeGetItem(processedKey) || '[]');
+      
+      var groupSubs = subs[state.currentGroup + '_C'] || [];
+      var groupMsgs = msgs.filter(function(m) { return m.group === state.currentGroup; });
+      
+      // 只显示已转发的消息
+      var receivedMsgs = groupMsgs.filter(function(m) { 
+        return processed.indexOf(m.id) > -1 && groupSubs.indexOf(m.topicId) > -1; 
+      });
+      
+      var container = document.getElementById('msg-list-c');
+      if (receivedMsgs.length === 0) {
+        container.innerHTML = '<p style="color:#6b7280;text-align:center;padding:2rem">暂无收到消息<br><span style="font-size:14px;color:#9ca3af">等待 B 转发匹配的消息...</span></p>';
+      } else {
+        var html = '';
+        receivedMsgs.forEach(function(m) {
+          var topic = null;
+          for (var i = 0; i < TOPICS.length; i++) {
+            if (TOPICS[i].id === m.topicId) { topic = TOPICS[i]; break; }
+          }
+          html += '<div class="p-4 border-2 border-blue-300 bg-blue-50"><span class="font-bold" style="color:#fff;background:' + (topic ? topic.color : '#999') + ';padding:3px 10px;border-radius:4px;font-size:14px">' + (topic ? topic.name : '') + '</span><p style="color:#111827;font-size:15px;font-weight:500;margin-top:8px">' + escapeHtml(m.content) + '</p></div>';
+        });
+        container.innerHTML = html;
+      }
+    }
+
+    // HTML转义，防止XSS
+    function escapeHtml(text) {
+      if (!text) return '';
+      var div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // 页面加载完成后初始化
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>
