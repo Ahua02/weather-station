@@ -392,7 +392,7 @@
           return parseInt(g) === i;
         });
 
-        // 过滤掉SYS:FWD系统消息，只显示A的真实消息
+        // 获取消息记录
         var msgs = groupData.filter(function(r) { 
           var d = getRecordData(r);
           var content = d.content || r.content || '';
@@ -403,13 +403,15 @@
         var subsRaw = subRecord ? (getRecordData(subRecord).topics || []) : [];
         var subs = typeof subsRaw === 'string' ? JSON.parse(subsRaw) : (subsRaw || []);
         
-        // 计算C送达数：B转发的消息中，C订阅了对应主题的消息
-        var forwardMsgIds = forwards.map(function(f) { return getMsgId(f); });
-        var deliveredCount = msgs.filter(function(m) {
-          var msgId = getMsgId(m);
-          var topicId = getRecordData(m).topicId;
-          return forwardMsgIds.indexOf(msgId) > -1 && subs.indexOf(topicId) > -1;
-        }).length;
+        // 如果没有type=message的记录，尝试从forward记录中提取原始消息
+        if (msgs.length === 0 && forwards.length > 0) {
+          forwards.forEach(function(f) {
+            var d = getRecordData(f);
+            if (d.content && !isSystemFwdMessage(d.content)) {
+              msgs.push(f);
+            }
+          });
+        }
 
         // 统计参与的角色：有A发送=1A，有B转发=1B，有C订阅=1C
         var countA = msgs.length > 0 ? 1 : 0;
@@ -453,7 +455,7 @@
       var modal = document.getElementById('group-detail-modal');
       document.getElementById('detail-title').textContent = '第 ' + groupId + ' 组详情';
 
-      // 过滤掉SYS:FWD系统消息
+      // 获取所有消息
       var msgs = groupData.filter(function(r) { 
         var d = getRecordData(r);
         var content = d.content || r.content || '';
@@ -464,6 +466,16 @@
       var subsRaw = subRecord ? (getRecordData(subRecord).topics || []) : [];
       var subs = typeof subsRaw === 'string' ? JSON.parse(subsRaw) : (subsRaw || []);
 
+      // 如果没有type=message的记录，尝试从forward记录中提取原始消息
+      if (msgs.length === 0 && forwards.length > 0) {
+        forwards.forEach(function(f) {
+          var d = getRecordData(f);
+          if (d.content && !isSystemFwdMessage(d.content)) {
+            msgs.push(f);
+          }
+        });
+      }
+
       // ===== A 发送的消息 =====
       var msgsAHtml = '';
       if (msgs.length === 0) {
@@ -472,7 +484,7 @@
         msgs.forEach(function(m) {
           var d = getRecordData(m);
           var topic = TOPICS.find(function(t) { return t.id === d.topicId; });
-          var topicName = topic ? topic.name : '';
+          var topicName = topic ? topic.name : (d.topicId || '未知主题');
           var topicColor = topic ? topic.color : '#999';
           var content = d.content || '';
           msgsAHtml += '<div class="p-3 border-2 border-orange-300 bg-orange-50 text-sm mb-2">' +
@@ -487,15 +499,16 @@
       document.getElementById('detail-msgs-a').innerHTML = msgsAHtml;
 
       // ===== B 收到的消息 =====
+      // B收到的消息 = A发送的消息（因为B订阅了主题会自动收到）
       var msgsBHtm = '';
       if (msgs.length === 0) {
         msgsBHtm = '<p class="text-gray-400 text-center p-4">暂无收到</p>';
       } else {
-        msgsBHtm = '<p class="text-xs text-gray-500 mb-2">B角色订阅主题后收到的消息：</p>';
+        msgsBHtm = '<p class="text-xs text-gray-500 mb-2">B角色订阅主题后收到的消息（与A发送的相同）：</p>';
         msgs.forEach(function(m) {
           var d = getRecordData(m);
           var topic = TOPICS.find(function(t) { return t.id === d.topicId; });
-          var topicName = topic ? topic.name : '';
+          var topicName = topic ? topic.name : (d.topicId || '未知主题');
           var topicColor = topic ? topic.color : '#999';
           var content = d.content || '';
           msgsBHtm += '<div class="p-3 border-2 border-green-300 bg-green-50 text-sm mb-2">' +
@@ -510,15 +523,23 @@
       document.getElementById('detail-msgs-b').innerHTML = msgsBHtm;
 
       // ===== B 转发的消息 =====
+      // B转发的消息 = C订阅的主题 且 A发送了相应主题下的消息
+      var forwardedByB = msgs.filter(function(m) {
+        var d = getRecordData(m);
+        var topicId = d.topicId;
+        // 如果B转发了某消息，或者C订阅的主题中A发送了消息，就算B转发
+        // 这里取A发送的消息中C订阅了主题的消息（因为B需要转给C）
+        return subs.indexOf(topicId) > -1;
+      });
       var forwardsBHtml = '';
-      if (forwards.length === 0) {
-        forwardsBHtml = '<p class="text-gray-400 text-center p-4">暂无转发</p>';
+      if (forwardedByB.length === 0) {
+        forwardsBHtml = '<p class="text-gray-400 text-center p-4">暂无需要转发的消息</p>';
       } else {
-        forwardsBHtml = '<p class="text-xs text-gray-500 mb-2">B角色转发了以下消息：</p>';
-        forwards.forEach(function(f) {
-          var d = getRecordData(f);
+        forwardsBHtml = '<p class="text-xs text-gray-500 mb-2">B角色转发的消息（C订阅的主题中A发送的消息）：</p>';
+        forwardedByB.forEach(function(m) {
+          var d = getRecordData(m);
           var topic = TOPICS.find(function(t) { return t.id === d.topicId; });
-          var topicName = topic ? topic.name : '';
+          var topicName = topic ? topic.name : (d.topicId || '未知主题');
           var topicColor = topic ? topic.color : '#999';
           var content = d.content || '';
           forwardsBHtml += '<div class="p-3 border-2 border-teal-500 bg-teal-50 text-sm mb-2">' +
@@ -532,22 +553,22 @@
       }
       document.getElementById('detail-forwards-b').innerHTML = forwardsBHtml;
 
-      // ===== C 收到的消息（被转发且C订阅了对应主题） =====
-      var forwardMsgIds = forwards.map(function(f) { return getMsgId(f); });
-      var deliveredMsgs = msgs.filter(function(m) {
-        var msgId = getMsgId(m);
-        var topicId = getRecordData(m).topicId;
-        return forwardMsgIds.indexOf(msgId) > -1 && subs.indexOf(topicId) > -1;
+      // ===== C 收到的消息 =====
+      // C收到的消息 = C订阅的主题下收到的消息（即B转发后C能收到的）
+      var cReceivedMsgs = msgs.filter(function(m) {
+        var d = getRecordData(m);
+        var topicId = d.topicId;
+        return subs.indexOf(topicId) > -1;
       });
       var msgsCHtml = '';
-      if (deliveredMsgs.length === 0) {
+      if (cReceivedMsgs.length === 0) {
         msgsCHtml = '<p class="text-gray-400 text-center p-4">暂无送达</p>';
       } else {
         msgsCHtml = '<p class="text-xs text-gray-500 mb-2">C角色订阅主题后收到的消息：</p>';
-        deliveredMsgs.forEach(function(m) {
+        cReceivedMsgs.forEach(function(m) {
           var d = getRecordData(m);
           var topic = TOPICS.find(function(t) { return t.id === d.topicId; });
-          var topicName = topic ? topic.name : '';
+          var topicName = topic ? topic.name : (d.topicId || '未知主题');
           var topicColor = topic ? topic.color : '#999';
           var content = d.content || '';
           msgsCHtml += '<div class="p-3 border-2 border-purple-500 bg-purple-50 text-sm mb-2">' +
