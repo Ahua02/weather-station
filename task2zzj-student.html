@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>悄悄话体验HTML版</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .pixel-box {
+      background: white;
+      border: 2px solid #000;
+      box-shadow: 4px 4px 0 #000;
+    }
+    .pixel-btn {
+      padding: 8px 16px;
+      border: 2px solid #000;
+      box-shadow: 3px 3px 0 #000;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.1s;
+    }
+    .pixel-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 5px 5px 0 #000;
+    }
+    .role-btn {
+      padding: 12px 8px;
+      border: 2px solid #ddd;
+      background: #f9f9f9;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .role-btn:hover {
+      border-color: #000;
+      background: #fff;
+      transform: scale(1.05);
+    }
+    .role-btn.role-active {
+      border-color: #000;
+      background: #fff3e0;
+      box-shadow: 0 0 0 2px #ff9800;
+    }
+    .task-banner {
+      padding: 12px 16px;
+      border: 2px solid;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    .task-banner-a { background: #fff7ed; border-color: #c2410c; color: #7c2d12; font-weight: 600; }
+    .task-banner-b { background: #f0fdf4; border-color: #15803d; color: #14532d; font-weight: 600; }
+    .task-banner-c { background: #eff6ff; border-color: #1d4ed8; color: #1e3a8a; font-weight: 600; }
+    .group-tag {
+      padding: 2px 8px;
+      color: white;
+      font-size: 10px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="max-w-6xl mx-auto p-4">
+    <!-- 顶部状态栏 -->
+    <div id="status-bar" class="hidden mb-4 p-4 bg-white border-2 border-black flex justify-between items-center">
+      <div id="identity-text" class="font-bold"></div>
+    </div>
+
+    <!-- 登录界面 -->
+    <div id="login-screen" class="py-8">
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold mb-2">🌊 悄悄话体验HTML版</h1>
+        <p class="text-gray-600">发布-订阅模式</p>
+      </div>
+      
+      <div class="pixel-box p-8 max-w-md mx-auto">
+        <h2 class="font-bold text-xl mb-6 text-center">请输入你的信息</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="block font-bold mb-2">姓名</label>
+            <input type="text" id="student-name" class="w-full border-2 border-black p-3" placeholder="请输入姓名">
+          </div>
+          <div>
+            <label class="block font-bold mb-2">学号</label>
+            <input type="number" id="student-id" class="w-full border-2 border-black p-3" placeholder="请输入学号（1-54）" min="1" max="54">
+          </div>
+          <button onclick="loginAndStart()" class="w-full pixel-btn bg-orange-500 text-white py-4 text-lg mt-4">确认登录</button>
+        </div>
+        <p class="text-xs text-gray-500 mt-4 text-center"></p>
+      </div>
+    </div>
+
+    <!-- 角色信息展示（登录后显示） -->
+    <div id="setup-screen" class="hidden py-8">
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold mb-2">🌊 悄悄话体验HTML版</h1>
+        <p class="text-gray-600">发布-订阅模式</p>
+      </div>
+      
+      <div class="pixel-box p-8 max-w-md mx-auto text-center">
+        <div class="text-4xl mb-4" id="role-emoji">✍️</div>
+        <div class="font-bold text-2xl mb-2" id="role-name">A 发布者</div>
+        <div class="text-gray-600 mb-4" id="student-info"></div>
+        <button onclick="enterGame()" class="pixel-btn bg-orange-500 text-white px-12 py-4 text-lg">开始任务</button>
+      </div>
+    </div>
+
+    <!-- 角色 A 界面 -->
+    <section id="role-a-screen" class="hidden space-y-6">
+      <div class="task-banner task-banner-a">✍️ 你的任务：作为发布者，请选择一个主题，编写并发送消息。</div>
+      
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="pixel-box p-6">
+          <h3 class="font-bold mb-4">选择主题</h3>
+          <div id="topic-list-a" class="space-y-2"></div>
+        </div>
+        
+        <div class="pixel-box p-6">
+          <h3 class="font-bold mb-4">发送消息</h3>
+          <textarea id="msg-input" class="w-full border-2 border-black p-3 h-32 resize-none" placeholder="输入你的消息内容..."></textarea>
+          <button onclick="sendMessage()" class="mt-4 w-full pixel-btn bg-orange-500 text-white">发送消息</button>
+        </div>
+      </div>
+
+      <div class="pixel-box p-6">
+        <h3 class="font-bold mb-4">📤 已发送的消息</h3>
+        <div id="history-a" class="space-y-3"></div>
+      </div>
+    </section>
+
+    <!-- 角色 B 界面 -->
+    <section id="role-b-screen" class="hidden space-y-6">
+      <div class="flex justify-between items-center">
+        <div class="task-banner task-banner-b flex-1">🖥️ 你的任务：作为代理者，请审核 A 的消息并手动转发给订阅的 C。</div>
+        <button onclick="syncData(); alert('已刷新数据！')" class="pixel-btn bg-green-500 text-white ml-4">🔄 刷新数据</button>
+      </div>
+      
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="pixel-box p-6">
+          <h3 class="font-bold text-gray-500 text-sm uppercase mb-4">A 发送的消息</h3>
+          <div id="b-incoming" class="space-y-3 h-64 overflow-y-auto"></div>
+        </div>
+        
+        <div class="pixel-box p-6">
+          <h3 class="font-bold text-gray-500 text-sm uppercase mb-4">C 订阅的主题</h3>
+          <div id="b-subscriptions" class="flex flex-wrap gap-2"></div>
+        </div>
+        
+        <div class="pixel-box p-6">
+          <h3 class="font-bold text-gray-500 text-sm uppercase mb-4">转发给 C 的消息</h3>
+          <div id="b-outgoing" class="space-y-3 h-64 overflow-y-auto"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 角色 C 界面 -->
+    <section id="role-c-screen" class="hidden space-y-6">
+      <div class="flex justify-between items-center">
+        <div class="task-banner task-banner-c flex-1">👂 你的任务：作为订阅者，请选择感兴趣的主题，接收转发来的消息。</div>
+        <button onclick="syncData(); alert('已刷新数据！')" class="pixel-btn bg-blue-500 text-white ml-4">🔄 刷新数据</button>
+      </div>
+      
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="pixel-box p-6">
+          <h3 class="font-bold mb-4">选择订阅主题</h3>
+          <div id="topic-list-c" class="space-y-2"></div>
+          <button id="sub-btn" onclick="confirmSubscription()" class="mt-4 w-full pixel-btn bg-blue-600 text-white">确认订阅</button>
+        </div>
+        
+        <div class="pixel-box p-6">
+          <h3 class="font-bold mb-4">📥 收到的消息</h3>
+          <div id="msg-list-c" class="space-y-3"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // 检测是否是刷新操作
+    // performance.navigation.type: 0=首次加载, 1=F5刷新, 2=后退
+    const isRefresh = performance.navigation.type === 1;
+    
+    // 配置
+    const API_URL = 'https://quickform.cn/api/mz86mfrqui';
+    const TOPICS = [
+      { id: 'game', name: '🎮 游戏攻略', color: '#ff6b6b' },
+      { id: 'tech', name: '🤖 AI黑科技', color: '#4ecdc4' },
+      { id: 'school', name: '🏫 校园趣事', color: '#ffd93d' },
+      { id: 'music', name: '🎵 流行音乐', color: '#6c5ce7' },
+      { id: 'sport', name: '🏀 运动健身', color: '#a8e6cf' }
+    ];
+    const GROUP_COLORS = ['#ff5600', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#6366f1', '#d946ef', '#14b8a6', '#f97316', '#ef4444', '#64748b', '#a855f7', '#0ea5e9', '#22c55e', '#71717a'];
+    
+    // 状态
+    const state = {
+      currentGroup: null,
+      currentRole: null,
+      selectedTopicA: null,
+      subsC: new Set(),
+      isSubscribed: false,
+      studentName: '',
+      studentId: null
+    };
+
+    // 安全获取localStorage
+    function safeGetItem(key) {
+      try {
+        return localStorage.getItem(key);
+      } catch (e) {
+        console.warn('localStorage不可用:', e);
+        return null;
+      }
+    }
+
+    // 安全保存localStorage
+    function safeSetItem(key, value) {
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch (e) {
+        console.warn('localStorage保存失败:', e);
+        return false;
+      }
+    }
+
+    // 安全移除localStorage
+    function safeRemoveItem(key) {
+      try {
+        localStorage.removeItem(key);
+      } catch (e) {
+        console.warn('localStorage移除失败:', e);
+      }
+    }
+
+    // 获取基于组和角色的独立存储键
+    function getStateKey() {
+      if (!state.currentGroup || !state.currentRole) {
+        return 'task2_student_state';
+      }
+      return `task2_student_state_g${state.currentGroup}_${state.currentRole}`;
+    }
+
+    // 保存状态到 localStorage（每个角色独立存储）
+    function saveState() {
+      if (!state.currentGroup || !state.currentRole) return;
+      const toSave = {
+        currentGroup: state.currentGroup,
+        currentRole: state.currentRole,
+        selectedTopicA: state.selectedTopicA,
+        subsC: Array.from(state.subsC),
+        isSubscribed: state.isSubscribed,
+        studentName: state.studentName,
+        studentId: state.studentId
+      };
+      safeSetItem(getStateKey(), JSON.stringify(toSave));
+    }
+
+    // 从 localStorage 恢复状态（基于学号恢复对应角色状态）
+    function restoreState() {
+      const studentId = parseInt(document.getElementById('student-id')?.value) || 
+                        parseInt(safeGetItem('task2_student_last_id'));
+      const name = document.getElementById('student-name')?.value?.trim() || 
+                    safeGetItem('task2_student_last_name');
+      
+      // 清除旧的全局状态引用
+      safeRemoveItem('task2_student_state');
+      
+      // 如果有学号，尝试恢复对应角色状态
+      if (studentId && name) {
+        const group = Math.ceil(studentId / 3);
+        const roleIndex = (studentId - 1) % 3;
+        const roles = ['A', 'B', 'C'];
+        const role = roles[roleIndex];
+        
+        const stateKey = `task2_student_state_g${group}_${role}`;
+        const saved = safeGetItem(stateKey);
+        
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            state.currentGroup = parsed.currentGroup;
+            state.currentRole = parsed.currentRole;
+            state.selectedTopicA = parsed.selectedTopicA;
+            state.subsC = new Set(parsed.subsC || []);
+            state.isSubscribed = parsed.isSubscribed;
+            state.studentName = parsed.studentName;
+            state.studentId = parsed.studentId;
+            return true;
+          } catch (e) {
+            console.error('恢复状态失败:', e);
+          }
+        }
+      }
+      return false;
+    }
+
+    // 登录并自动分配角色
+    function loginAndStart() {
+      const name = document.getElementById('student-name').value.trim();
+      const id = parseInt(document.getElementById('student-id').value);
+      
+      if (!name) {
+        alert('请输入姓名！');
+        return;
+      }
+      if (!id || id < 1 || id > 54) {
+        alert('学号必须在 1-54 之间！');
+        return;
+      }
+      
+      // 根据学号计算组号和角色
+      const group = Math.ceil(id / 3);
+      const roleIndex = (id - 1) % 3;
+      const roles = ['A', 'B', 'C'];
+      const role = roles[roleIndex];
+      
+      // 保存信息
+      state.currentGroup = group;
+      state.currentRole = role;
+      state.studentName = name;
+      state.studentId = id;
+      
+      // 保存学号和姓名到全局键（用于刷新后恢复）
+      safeSetItem('task2_student_last_id', id);
+      safeSetItem('task2_student_last_name', name);
+      
+      // 立即保存当前角色状态
+      saveState();
+      
+      // 显示角色信息
+      const emojis = { 'A': '✍️', 'B': '🖥️', 'C': '👂' };
+      const roleNames = { 'A': 'A 发布者', 'B': 'B 代理者', 'C': 'C 订阅者' };
+      const roleColors = { 'A': 'text-orange-600', 'B': 'text-green-600', 'C': 'text-blue-600' };
+      
+      document.getElementById('role-emoji').textContent = emojis[role];
+      document.getElementById('role-name').textContent = roleNames[role];
+      document.getElementById('role-name').className = `font-bold text-2xl mb-2 ${roleColors[role]}`;
+      document.getElementById('student-info').textContent = `${name} | 学号：${id} | 第${group}组`;
+      
+      // 切换到角色展示界面
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('setup-screen').classList.remove('hidden');
+    }
+
+    // 初始化
+    function init() {
+      // 生成 A 的主题列表
+      const listA = document.getElementById('topic-list-a');
+      TOPICS.forEach(t => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left p-3 border-2 border-gray-200 hover:border-black transition-all';
+        btn.style.color = '#374151';
+        btn.innerHTML = `<span style="color:${t.color};font-weight:bold">■</span> <span style="font-size:15px;font-weight:500">${t.name}</span>`;
+        btn.onclick = () => selectTopicA(t, btn);
+        listA.appendChild(btn);
+      });
+
+      // 生成 C 的主题列表
+      const listC = document.getElementById('topic-list-c');
+      TOPICS.forEach(t => {
+        const label = document.createElement('label');
+        label.className = 'flex items-center p-3 border-2 border-gray-200 hover:border-blue-400 cursor-pointer';
+        label.style.color = '#374151';
+        label.innerHTML = `<input type="checkbox" class="mr-3 w-5 h-5" onchange="toggleSub('${t.id}')"><span style="font-size:15px;font-weight:500">${t.name}</span>`;
+        listC.appendChild(label);
+      });
+
+      // 尝试恢复之前的状态（仅在非刷新操作时恢复）
+      if (!isRefresh && restoreState() && state.currentGroup && state.currentRole && state.studentName) {
+        // 跳过登录界面，直接进入游戏
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('setup-screen').classList.add('hidden');
+        document.getElementById('status-bar').classList.remove('hidden');
+        
+        const identityText = document.getElementById('identity-text');
+        identityText.innerHTML = `<span class="font-bold mr-4">${state.studentName}</span><span class="text-gray-500 mr-2">学号：${state.studentId}</span><span class="group-tag" style="background:${GROUP_COLORS[state.currentGroup - 1]}">组 ${state.currentGroup}</span><span class="ml-2">角色 ${state.currentRole}</span>`;
+
+        document.getElementById('role-a-screen').classList.add('hidden');
+        document.getElementById('role-b-screen').classList.add('hidden');
+        document.getElementById('role-c-screen').classList.add('hidden');
+
+        if (state.currentRole === 'A') {
+          document.getElementById('role-a-screen').classList.remove('hidden');
+          // 恢复A选择的主题
+          if (state.selectedTopicA) {
+            const topic = TOPICS.find(t => t.id === state.selectedTopicA);
+            if (topic) {
+              const btns = document.querySelectorAll(`#topic-list-a button`);
+              btns.forEach(btn => {
+                if (btn.innerHTML.includes(topic.name)) {
+                  selectTopicA(topic, btn);
+                }
+              });
+            }
+          }
+        }
+        if (state.currentRole === 'B') document.getElementById('role-b-screen').classList.remove('hidden');
+        if (state.currentRole === 'C') {
+          document.getElementById('role-c-screen').classList.remove('hidden');
+          // 恢复C的订阅主题勾选状态
+          state.subsC.forEach(topicId => {
+            const checkboxes = document.querySelectorAll(`#topic-list-c input`);
+            checkboxes.forEach(cb => {
+              if (cb.onchange && cb.onchange.toString().includes(topicId)) {
+                cb.checked = true;
+              }
+            });
+          });
+          // 恢复C的订阅状态
+          if (state.isSubscribed) {
+            const btn = document.getElementById('sub-btn');
+            btn.textContent = '✓ 订阅成功';
+            btn.style.backgroundColor = '#9ca3af';
+            btn.disabled = true;
+            // 禁用主题选择
+            document.querySelectorAll('#topic-list-c input').forEach(cb => cb.disabled = true);
+          }
+        }
+        
+        // 同步数据并渲染
+        syncData();
+      }
+
+      // 启动数据同步（每2秒）
+      setInterval(syncData, 2000);
+    }
+
+    // 进入游戏
+    function enterGame() {
+      // 保存状态，以便刷新后恢复
+      saveState();
+      
+      document.getElementById('setup-screen').classList.add('hidden');
+      document.getElementById('status-bar').classList.remove('hidden');
+      
+      const identityText = document.getElementById('identity-text');
+      identityText.innerHTML = `<span class="font-bold mr-4">${state.studentName}</span><span class="text-gray-500 mr-2">学号：${state.studentId}</span><span class="group-tag" style="background:${GROUP_COLORS[state.currentGroup - 1]}">组 ${state.currentGroup}</span><span class="ml-2">角色 ${state.currentRole}</span>`;
+
+      document.getElementById('role-a-screen').classList.add('hidden');
+      document.getElementById('role-b-screen').classList.add('hidden');
+      document.getElementById('role-c-screen').classList.add('hidden');
+
+      if (state.currentRole === 'A') document.getElementById('role-a-screen').classList.remove('hidden');
+      if (state.currentRole === 'B') document.getElementById('role-b-screen').classList.remove('hidden');
+      if (state.currentRole === 'C') {
+        document.getElementById('role-c-screen').classList.remove('hidden');
+        // 如果已订阅，禁用主题选择
+        if (state.isSubscribed) {
+          document.querySelectorAll('#topic-list-c input').forEach(cb => cb.disabled = true);
+        }
+      }
+      
+      syncData();
+    }
+
+    // 选择主题 A
+    function selectTopicA(topic, btn) {
+      state.selectedTopicA = topic.id;
+      document.querySelectorAll('#topic-list-a button').forEach(b => {
+        b.classList.remove('border-black', 'bg-orange-50');
+      });
+      btn.classList.add('border-black', 'bg-orange-50');
+    }
+
+    // 切换订阅（订阅后不能修改）
+    function toggleSub(id) {
+      if (state.isSubscribed) return; // 已订阅后不能修改
+      if (state.subsC.has(id)) state.subsC.delete(id);
+      else state.subsC.add(id);
+    }
+
+    // 发送消息
+    function sendMessage() {
+      const content = document.getElementById('msg-input').value.trim();
+      if (!state.selectedTopicA || !content) {
+        alert('请选择主题并输入内容');
+        return;
+      }
+      
+      const msg = {
+        group: state.currentGroup,
+        topicId: state.selectedTopicA,
+        content,
+        timestamp: Date.now(),
+        id: Date.now()
+      };
+      
+      // 保存到本地
+      const msgs = JSON.parse(safeGetItem('mqtt_msgs') || '[]');
+      msgs.push(msg);
+      safeSetItem('mqtt_msgs', JSON.stringify(msgs));
+      
+      // 发送到服务器（可选，静默失败）
+      postData({ type: 'message', ...msg }).catch(() => {});
+      
+      document.getElementById('msg-input').value = '';
+      syncData();
+      alert('发送成功！');
+    }
+
+    // 确认订阅
+    function confirmSubscription() {
+      if (state.subsC.size === 0) {
+        alert('请选择至少一个主题');
+        return;
+      }
+      
+      const data = {
+        group: state.currentGroup,
+        type: 'subscription',
+        topics: Array.from(state.subsC)
+      };
+      
+      // 保存到本地
+      const subs = JSON.parse(safeGetItem('mqtt_subs') || '{}');
+      subs[`${state.currentGroup}_C`] = Array.from(state.subsC);
+      safeSetItem('mqtt_subs', JSON.stringify(subs));
+      
+      // 发送到服务器（可选，静默失败）
+      postData(data).catch(() => {});
+      
+      state.isSubscribed = true;
+      const btn = document.getElementById('sub-btn');
+      btn.textContent = '✓ 订阅成功';
+      btn.style.backgroundColor = '#9ca3af';
+      btn.disabled = true;
+      
+      // 禁用主题选择复选框
+      document.querySelectorAll('#topic-list-c input').forEach(cb => cb.disabled = true);
+      
+      // 保存状态
+      saveState();
+      
+      syncData();
+    }
+
+    // 手动转发消息（B 角色）
+    function forwardMessage(msgId, topicId) {
+      const processed = JSON.parse(safeGetItem(`mqtt_processed_${state.currentGroup}`) || '[]');
+      if (processed.includes(msgId)) return;
+      
+      processed.push(msgId);
+      safeSetItem(`mqtt_processed_${state.currentGroup}`, JSON.stringify(processed));
+      
+      syncData();
+    }
+
+    // 发送数据到服务器
+    async function postData(data) {
+      try {
+        await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...data, timestamp: Date.now() })
+        });
+      } catch (e) {
+        console.error('发送失败:', e);
+      }
+    }
+
+    // 同步数据
+    async function syncData() {
+      // 优先使用本地数据
+      renderWithLocalData();
+      
+      // 尝试获取远程数据（静默失败）
+      try {
+        const res = await fetch(API_URL + '?_t=' + Date.now());
+        const json = await res.json();
+        
+        // 递归展开嵌套的data字段
+        function extractRecords(obj) {
+          if (Array.isArray(obj)) return obj;
+          if (obj && typeof obj === 'object') {
+            if (obj.data !== undefined) {
+              if (Array.isArray(obj.data)) return obj.data;
+              if (typeof obj.data === 'object') {
+                return Object.values(obj.data).flat().filter(Boolean);
+              }
+            }
+            if (obj.submissions !== undefined && Array.isArray(obj.submissions)) return obj.submissions;
+            if (obj.records !== undefined && Array.isArray(obj.records)) return obj.records;
+            const values = Object.values(obj);
+            if (values.length > 0 && typeof values[0] === 'object') {
+              return values.flat().filter(v => v && typeof v === 'object');
+            }
+          }
+          return [];
+        }
+        
+        const records = extractRecords(json);
+        
+        // 处理远程数据 - 合并本地和远程消息，确保不丢失数据
+        const remoteMsgs = records.filter(r => {
+          const data = r.data ? (typeof r.data === 'object' ? r.data : JSON.parse(r.data || '{}')) : r;
+          return data.type === 'message';
+        }).map(r => {
+          const data = r.data ? (typeof r.data === 'object' ? r.data : JSON.parse(r.data || '{}')) : r;
+          return {
+            group: data.group ?? r.group,
+            topicId: data.topicId,
+            content: data.content,
+            timestamp: data.timestamp ?? r.timestamp,
+            id: data.timestamp ?? r.timestamp ?? Date.now()
+          };
+        });
+        
+        // 合并本地和远程消息（去重）
+        if (remoteMsgs.length > 0) {
+          const localMsgs = JSON.parse(safeGetItem('mqtt_msgs') || '[]');
+          const allMsgIds = new Set([...localMsgs.map(m => m.id), ...remoteMsgs.map(m => m.id)]);
+          const mergedMsgs = [...localMsgs];
+          remoteMsgs.forEach(rm => {
+            if (!localMsgs.find(lm => lm.id === rm.id)) {
+              mergedMsgs.push(rm);
+            }
+          });
+          safeSetItem('mqtt_msgs', JSON.stringify(mergedMsgs));
+        }
+        
+        // 处理订阅数据
+        const subs = {};
+        records.filter(r => {
+          const data = r.data ? (typeof r.data === 'object' ? r.data : JSON.parse(r.data || '{}')) : r;
+          return data.type === 'subscription';
+        }).forEach(r => {
+          const data = r.data ? (typeof r.data === 'object' ? r.data : JSON.parse(r.data || '{}')) : r;
+          const key = `${data.group ?? r.group}_C`;
+          subs[key] = data.topics || [];
+        });
+        if (Object.keys(subs).length > 0) {
+          // 合并订阅数据
+          const localSubs = JSON.parse(safeGetItem('mqtt_subs') || '{}');
+          Object.assign(localSubs, subs);
+          safeSetItem('mqtt_subs', JSON.stringify(localSubs));
+        }
+      } catch (e) {
+        // 静默失败，使用本地数据
+      }
+      
+      // 根据当前角色渲染
+      renderWithLocalData();
+    }
+
+    // 使用本地数据渲染
+    function renderWithLocalData() {
+      if (state.currentRole === 'A') renderHistoryA();
+      if (state.currentRole === 'B') renderRoleB();
+      if (state.currentRole === 'C') renderRoleC();
+    }
+
+    // 渲染 A 的历史
+    function renderHistoryA() {
+      const msgs = JSON.parse(safeGetItem('mqtt_msgs') || '[]');
+      const groupMsgs = msgs.filter(m => m.group === state.currentGroup);
+      const container = document.getElementById('history-a');
+      
+      if (groupMsgs.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-center py-8">暂无已发送的消息</p>';
+        return;
+      }
+      
+      container.innerHTML = groupMsgs.map(m => {
+        const topic = TOPICS.find(t => t.id === m.topicId);
+        return `<div class="p-3 border-2 border-orange-300 bg-orange-50"><span class="font-bold text-sm" style="color:#fff;background:${topic?.color};padding:2px 10px;border-radius:4px">${topic?.name}</span> <span style="color:#111827;font-size:14px;font-weight:500">${escapeHtml(m.content)}</span></div>`;
+      }).join('');
+    }
+
+    // 渲染 B 界面
+    function renderRoleB() {
+      const msgs = JSON.parse(safeGetItem('mqtt_msgs') || '[]');
+      const subs = JSON.parse(safeGetItem('mqtt_subs') || '{}');
+      const processed = JSON.parse(safeGetItem(`mqtt_processed_${state.currentGroup}`) || '[]');
+      
+      const groupMsgs = msgs.filter(m => m.group === state.currentGroup);
+      const groupSubs = subs[`${state.currentGroup}_C`] || [];
+      
+      // A 的消息
+      const incoming = document.getElementById('b-incoming');
+      incoming.innerHTML = groupMsgs.length === 0 
+        ? '<p style="color:#6b7280;text-align:center;padding:2rem">暂无消息</p>'
+        : groupMsgs.map(m => {
+          const topic = TOPICS.find(t => t.id === m.topicId);
+          const isProcessed = processed.includes(m.id);
+          const isMatched = groupSubs.includes(m.topicId);
+          return `<div class="p-3 border-2 ${isMatched ? 'border-green-500 bg-green-50' : 'border-gray-200'}">
+            <div class="flex justify-between items-start">
+              <div><span class="font-bold text-sm" style="color:#fff;background:${topic?.color};padding:2px 8px;border-radius:4px">${topic?.name}</span> <span style="color:#111827;font-size:14px;font-weight:500">${escapeHtml(m.content)}</span></div>
+              ${!isProcessed && isMatched ? `<button onclick="forwardMessage(${m.id},'${m.topicId}')" class="ml-2 text-sm bg-green-600 text-white px-3 py-1" style="background:#16a34a;color:white;border:none;padding:4px 12px;font-weight:bold;cursor:pointer;border-radius:4px">转发</button>` : ''}
+              ${isProcessed ? '<span style="color:#15803d;font-size:13px;font-weight:bold">已转发</span>' : ''}
+            </div>
+          </div>`;
+        }).join('');
+      
+      // C 的订阅
+      const subscriptions = document.getElementById('b-subscriptions');
+      subscriptions.innerHTML = groupSubs.length === 0
+        ? '<p style="color:#6b7280;font-size:14px">暂无订阅</p>'
+        : groupSubs.map(s => {
+          const topic = TOPICS.find(t => t.id === s);
+          return `<span class="px-3 py-1 text-sm" style="background:${topic?.color};color:white;border-radius:9999px;font-weight:600">${topic?.name}</span>`;
+        }).join('');
+      
+      // B 转发的消息
+      const outgoing = document.getElementById('b-outgoing');
+      const forwardedMsgs = groupMsgs.filter(m => processed.includes(m.id));
+      outgoing.innerHTML = forwardedMsgs.length === 0
+        ? '<p style="color:#6b7280;text-align:center;padding:2rem">暂无转发</p>'
+        : forwardedMsgs.map(m => {
+          const topic = TOPICS.find(t => t.id === m.topicId);
+          return `<div class="p-3 border-2 border-green-500 bg-green-50"><span class="font-bold text-sm" style="color:#fff;background:${topic?.color};padding:2px 8px;border-radius:4px">${topic?.name}</span> <span style="color:#111827;font-size:14px;font-weight:500">${escapeHtml(m.content)}</span></div>`;
+        }).join('');
+    }
+
+    // 渲染 C 界面
+    function renderRoleC() {
+      const msgs = JSON.parse(safeGetItem('mqtt_msgs') || '[]');
+      const subs = JSON.parse(safeGetItem('mqtt_subs') || '{}');
+      const processed = JSON.parse(safeGetItem(`mqtt_processed_${state.currentGroup}`) || '[]');
+      
+      const groupSubs = subs[`${state.currentGroup}_C`] || [];
+      const groupMsgs = msgs.filter(m => m.group === state.currentGroup);
+      
+      // 只显示已转发的消息
+      const receivedMsgs = groupMsgs.filter(m => processed.includes(m.id) && groupSubs.includes(m.topicId));
+      
+      const container = document.getElementById('msg-list-c');
+      container.innerHTML = receivedMsgs.length === 0
+        ? '<p style="color:#6b7280;text-align:center;padding:2rem">暂无收到消息<br><span style="font-size:14px;color:#9ca3af">等待 B 转发匹配的消息...</span></p>'
+        : receivedMsgs.map(m => {
+          const topic = TOPICS.find(t => t.id === m.topicId);
+          return `<div class="p-4 border-2 border-blue-300 bg-blue-50"><span class="font-bold" style="color:#fff;background:${topic?.color};padding:3px 10px;border-radius:4px;font-size:14px">${topic?.name}</span><p style="color:#111827;font-size:15px;font-weight:500;margin-top:8px">${escapeHtml(m.content)}</p></div>`;
+        }).join('');
+    }
+
+    // HTML转义，防止XSS
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // 页面加载完成后初始化
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>
