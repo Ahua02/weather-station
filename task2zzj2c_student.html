@@ -498,6 +498,17 @@
       state.studentName = name;
       state.studentId = id;
       
+      // 【关键修复】如果是C角色，检查是否已经订阅过
+      if (role === 'C') {
+        var subs = JSON.parse(safeGetItem('mqtt_subs') || '{}');
+        var subKey = group + '_C';
+        if (subs[subKey] && subs[subKey].length > 0) {
+          // 已经订阅过，强制锁定
+          state.subsC = subs[subKey];
+          state.isSubscribed = true;
+        }
+      }
+      
       // 保存学号和姓名到全局键（用于刷新后恢复）
       safeSetItem('task2_student_last_id', id);
       safeSetItem('task2_student_last_name', name);
@@ -513,12 +524,12 @@
       document.getElementById('role-emoji').textContent = emojis[role];
       document.getElementById('role-name').textContent = roleNames[role];
       document.getElementById('role-name').className = 'font-bold text-2xl mb-2 ' + roleColors[role];
-      document.getElementById('student-info').textContent = name + ' | 学号：' + id + ' | 第' + group + '组';
       
-      // 如果C角色且已订阅，显示锁定提示
+      // C角色显示不同的信息
       if (role === 'C' && state.isSubscribed) {
-        var infoEl = document.getElementById('student-info');
-        infoEl.innerHTML += '<br><span style="color:#ef4444;font-size:13px">🔒 已订阅，无法修改</span>';
+        document.getElementById('student-info').innerHTML = name + ' | 学号：' + id + ' | 第' + group + '组<br><span style="color:#ef4444;font-size:13px">🔒 已订阅，无法修改 - 仅可接收消息</span>';
+      } else {
+        document.getElementById('student-info').textContent = name + ' | 学号：' + id + ' | 第' + group + '组';
       }
       
       // 切换到角色展示界面
@@ -630,8 +641,19 @@
       if (state.currentRole === 'B') document.getElementById('role-b-screen').classList.remove('hidden');
       if (state.currentRole === 'C') {
         document.getElementById('role-c-screen').classList.remove('hidden');
-        // 如果已订阅，锁定界面
+        // 如果已订阅，恢复勾选状态并锁定
         if (state.isSubscribed) {
+          // 恢复复选框勾选状态
+          for (var ci = 0; ci < state.subsC.length; ci++) {
+            var topicId = state.subsC[ci];
+            var checkboxes = document.querySelectorAll('#topic-list-c input');
+            for (var cj = 0; cj < checkboxes.length; cj++) {
+              var cb = checkboxes[cj];
+              if (cb.onchange && cb.onchange.toString().indexOf(topicId) > -1) {
+                cb.checked = true;
+              }
+            }
+          }
           lockCInterface();
         }
       }
