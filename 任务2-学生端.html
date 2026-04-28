@@ -307,6 +307,48 @@
 
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('setup-screen').classList.remove('hidden');
+
+      // B 角色登录时立即同步 C 的订阅数据
+      if (role === 'B') {
+        syncSubsFromAPI(function() {
+          renderWithLocalData();
+        });
+      }
+    }
+
+    // 从 API 同步订阅数据
+    function syncSubsFromAPI(callback) {
+      try {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', API_URL + '?_t=' + Date.now(), true);
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+            try {
+              var json = JSON.parse(xhr.responseText);
+              var records = extractRecords(json);
+              var subs = {};
+              var hasSubs = false;
+              records.forEach(function(r) {
+                var recData = r.data ? (typeof r.data === 'object' ? r.data : JSON.parse(r.data || '{}')) : r;
+                if (recData.type === 'subscription') {
+                  var key = (recData.group || r.group) + '_C';
+                  subs[key] = recData.topics || [];
+                  hasSubs = true;
+                }
+              });
+              if (hasSubs) {
+                var localSubs = JSON.parse(safeGetItem('mqtt_subs') || '{}');
+                for (var k in subs) localSubs[k] = subs[k];
+                safeSetItem('mqtt_subs', JSON.stringify(localSubs));
+              }
+            } catch (e2) {}
+            if (callback) callback();
+          }
+        };
+        xhr.send();
+      } catch (e) {
+        if (callback) callback();
+      }
     }
 
     // 初始化
@@ -403,7 +445,13 @@
       document.getElementById('role-c-screen').classList.add('hidden');
 
       if (state.currentRole === 'A') document.getElementById('role-a-screen').classList.remove('hidden');
-      if (state.currentRole === 'B') document.getElementById('role-b-screen').classList.remove('hidden');
+      if (state.currentRole === 'B') {
+        document.getElementById('role-b-screen').classList.remove('hidden');
+        // B 角色进入游戏时立即同步 C 的订阅数据
+        syncSubsFromAPI(function() {
+          renderWithLocalData();
+        });
+      }
       if (state.currentRole === 'C') {
         document.getElementById('role-c-screen').classList.remove('hidden');
         if (state.isSubscribed) {
