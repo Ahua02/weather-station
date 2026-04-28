@@ -158,14 +158,20 @@
           <h3 id="detail-title" class="font-bold text-xl">组详情</h3>
           <button onclick="hideGroupDetail()" class="pixel-btn bg-gray-300 text-black">关闭</button>
         </div>
-        <div class="grid md:grid-cols-3 gap-6">
+        <div class="grid md:grid-cols-2 gap-6">
           <div>
             <h4 class="font-bold text-orange-600 mb-4">✍️ A 发送的消息</h4>
             <div id="detail-msgs-a" class="space-y-3 max-h-64 overflow-y-auto"></div>
           </div>
           <div>
-            <h4 class="font-bold text-green-600 mb-4">🖥️ B 转发的消息</h4>
+            <h4 class="font-bold text-green-600 mb-4">📨 B 收到的消息</h4>
             <div id="detail-msgs-b" class="space-y-3 max-h-64 overflow-y-auto"></div>
+          </div>
+        </div>
+        <div class="grid md:grid-cols-2 gap-6 mt-6">
+          <div>
+            <h4 class="font-bold text-teal-600 mb-4">🔄 B 转发的消息</h4>
+            <div id="detail-forwards-b" class="space-y-3 max-h-64 overflow-y-auto"></div>
           </div>
           <div>
             <h4 class="font-bold text-purple-600 mb-4">📩 C 送达的消息</h4>
@@ -453,7 +459,7 @@
         var content = d.content || r.content || '';
         return getRecordType(r) === 'message' && !isSystemFwdMessage(content); 
       });
-      var forwards = groupData.filter(function(r) { return getRecordType(r) === 'forward'; }).map(function(r) { return getMsgId(r); });
+      var forwards = groupData.filter(function(r) { return getRecordType(r) === 'forward'; });
       var subRecord = groupData.filter(function(r) { return getRecordType(r) === 'subscription'; }).pop();
       var subsRaw = subRecord ? (getRecordData(subRecord).topics || []) : [];
       var subs = typeof subsRaw === 'string' ? JSON.parse(subsRaw) : (subsRaw || []);
@@ -480,40 +486,64 @@
       }
       document.getElementById('detail-msgs-a').innerHTML = msgsAHtml;
 
-      // ===== B 转发的消息（接收+转发） =====
-      var forwardedMsgs = msgs.filter(function(m) { return forwards.indexOf(getMsgId(m)) > -1; });
-      var msgsBHtml = '';
-      if (forwardedMsgs.length === 0) {
-        msgsBHtml = '<p class="text-gray-400 text-center p-4">暂无转发</p>';
+      // ===== B 收到的消息 =====
+      var msgsBHtm = '';
+      if (msgs.length === 0) {
+        msgsBHtm = '<p class="text-gray-400 text-center p-4">暂无收到</p>';
       } else {
-        msgsBHtml = '<p class="text-xs text-gray-500 mb-2">B角色接收并转发了以下消息：</p>';
-        forwardedMsgs.forEach(function(m) {
+        msgsBHtm = '<p class="text-xs text-gray-500 mb-2">B角色订阅主题后收到的消息：</p>';
+        msgs.forEach(function(m) {
           var d = getRecordData(m);
           var topic = TOPICS.find(function(t) { return t.id === d.topicId; });
           var topicName = topic ? topic.name : '';
           var topicColor = topic ? topic.color : '#999';
           var content = d.content || '';
-          msgsBHtml += '<div class="p-3 border-2 border-green-500 bg-green-50 text-sm mb-2">' +
+          msgsBHtm += '<div class="p-3 border-2 border-green-300 bg-green-50 text-sm mb-2">' +
             '<div class="flex items-center gap-2 mb-1">' +
             '<span class="font-bold text-xs" style="color:#fff;background:' + topicColor + ';padding:2px 8px;border-radius:4px">' + topicName + '</span>' +
-            '<span class="text-xs text-green-600 font-medium">✓ 已转发</span>' +
+            '<span class="text-xs text-green-600 font-medium">📥 已接收</span>' +
             '</div>' +
             '<div class="text-gray-800">' + escapeHtml(content) + '</div>' +
             '</div>';
         });
       }
-      document.getElementById('detail-msgs-b').innerHTML = msgsBHtml;
+      document.getElementById('detail-msgs-b').innerHTML = msgsBHtm;
+
+      // ===== B 转发的消息 =====
+      var forwardsBHtml = '';
+      if (forwards.length === 0) {
+        forwardsBHtml = '<p class="text-gray-400 text-center p-4">暂无转发</p>';
+      } else {
+        forwardsBHtml = '<p class="text-xs text-gray-500 mb-2">B角色转发了以下消息：</p>';
+        forwards.forEach(function(f) {
+          var d = getRecordData(f);
+          var topic = TOPICS.find(function(t) { return t.id === d.topicId; });
+          var topicName = topic ? topic.name : '';
+          var topicColor = topic ? topic.color : '#999';
+          var content = d.content || '';
+          forwardsBHtml += '<div class="p-3 border-2 border-teal-500 bg-teal-50 text-sm mb-2">' +
+            '<div class="flex items-center gap-2 mb-1">' +
+            '<span class="font-bold text-xs" style="color:#fff;background:' + topicColor + ';padding:2px 8px;border-radius:4px">' + topicName + '</span>' +
+            '<span class="text-xs text-teal-600 font-medium">🔄 已转发</span>' +
+            '</div>' +
+            '<div class="text-gray-800">' + escapeHtml(content) + '</div>' +
+            '</div>';
+        });
+      }
+      document.getElementById('detail-forwards-b').innerHTML = forwardsBHtml;
 
       // ===== C 收到的消息（被转发且C订阅了对应主题） =====
+      var forwardMsgIds = forwards.map(function(f) { return getMsgId(f); });
       var deliveredMsgs = msgs.filter(function(m) {
         var msgId = getMsgId(m);
         var topicId = getRecordData(m).topicId;
-        return forwards.indexOf(msgId) > -1 && subs.indexOf(topicId) > -1;
+        return forwardMsgIds.indexOf(msgId) > -1 && subs.indexOf(topicId) > -1;
       });
       var msgsCHtml = '';
       if (deliveredMsgs.length === 0) {
         msgsCHtml = '<p class="text-gray-400 text-center p-4">暂无送达</p>';
       } else {
+        msgsCHtml = '<p class="text-xs text-gray-500 mb-2">C角色订阅主题后收到的消息：</p>';
         deliveredMsgs.forEach(function(m) {
           var d = getRecordData(m);
           var topic = TOPICS.find(function(t) { return t.id === d.topicId; });
