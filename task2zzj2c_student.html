@@ -515,6 +515,12 @@
       document.getElementById('role-name').className = 'font-bold text-2xl mb-2 ' + roleColors[role];
       document.getElementById('student-info').textContent = name + ' | 学号：' + id + ' | 第' + group + '组';
       
+      // 如果C角色且已订阅，显示锁定提示
+      if (role === 'C' && state.isSubscribed) {
+        var infoEl = document.getElementById('student-info');
+        infoEl.innerHTML += '<br><span style="color:#ef4444;font-size:13px">🔒 已订阅，无法修改</span>';
+      }
+      
       // 切换到角色展示界面
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('setup-screen').classList.remove('hidden');
@@ -593,13 +599,7 @@
           }
           // 恢复C的订阅状态
           if (state.isSubscribed) {
-            var subBtn = document.getElementById('sub-btn');
-            subBtn.textContent = '✓ 订阅成功';
-            subBtn.style.backgroundColor = '#9ca3af';
-            subBtn.disabled = true;
-            // 禁用主题选择
-            var cbs = document.querySelectorAll('#topic-list-c input');
-            for (var m = 0; m < cbs.length; m++) { cbs[m].disabled = true; }
+            lockCInterface();
           }
         }
         
@@ -630,10 +630,9 @@
       if (state.currentRole === 'B') document.getElementById('role-b-screen').classList.remove('hidden');
       if (state.currentRole === 'C') {
         document.getElementById('role-c-screen').classList.remove('hidden');
-        // 如果已订阅，禁用主题选择
+        // 如果已订阅，锁定界面
         if (state.isSubscribed) {
-          var cbs = document.querySelectorAll('#topic-list-c input');
-          for (var i = 0; i < cbs.length; i++) { cbs[i].disabled = true; }
+          lockCInterface();
         }
       }
       
@@ -656,6 +655,22 @@
       var idx = state.subsC.indexOf(id);
       if (idx > -1) state.subsC.splice(idx, 1);
       else state.subsC.push(id);
+    }
+    
+    // 禁用C角色的所有交互（订阅后调用）
+    function lockCInterface() {
+      // 禁用复选框
+      var cbs = document.querySelectorAll('#topic-list-c input');
+      for (var i = 0; i < cbs.length; i++) { 
+        cbs[i].disabled = true; 
+      }
+      // 禁用订阅按钮
+      var subBtn = document.getElementById('sub-btn');
+      if (subBtn) {
+        subBtn.textContent = '✓ 订阅成功';
+        subBtn.style.backgroundColor = '#9ca3af';
+        subBtn.disabled = true;
+      }
     }
 
     // 发送消息
@@ -709,14 +724,9 @@
       postData(data);
       
       state.isSubscribed = true;
-      var btn = document.getElementById('sub-btn');
-      btn.textContent = '✓ 订阅成功';
-      btn.style.backgroundColor = '#9ca3af';
-      btn.disabled = true;
       
-      // 禁用主题选择复选框
-      var cbs = document.querySelectorAll('#topic-list-c input');
-      for (var i = 0; i < cbs.length; i++) { cbs[i].disabled = true; }
+      // 锁定C角色界面（确保即使刷新也保持锁定）
+      lockCInterface();
       
       // 保存状态
       saveState();
