@@ -277,6 +277,12 @@
       return d.msgId || d.messageId || d.id || d.timestamp || r.msgId || r.messageId || r.id || r.timestamp || '';
     }
 
+    // 判断是否为系统转发消息（用于过滤SYS:FWD内部消息）
+    function isSystemFwdMessage(content) {
+      if (!content) return false;
+      return /^\u3010SYS:FWD:\d+\u3011$/.test(content.trim());
+    }
+
     // 加载数据
     async function loadData() {
       // file:// 协议下无法进行网络请求
@@ -290,6 +296,14 @@
 
       try {
         var response = await fetch(API_URL + '?_t=' + Date.now());
+        
+        // 处理429错误（请求过于频繁）
+        if (response.status === 429) {
+          console.warn('请求过于频繁，稍后重试...');
+          setLoadingState(false);
+          return;
+        }
+        
         if (!response.ok) {
           throw new Error('HTTP ' + response.status);
         }
@@ -305,7 +319,7 @@
         updateRecordCount();
       } catch (error) {
         console.error('获取数据失败:', error);
-        alert('⚠️ 获取数据失败：' + error.message + '\n\n请确保已通过 http://localhost 访问此页面。');
+        // 不要弹出alert，只在控制台记录错误
         allRecords = [];
         renderTeacher();
         updateStats();
@@ -372,7 +386,12 @@
           return parseInt(g) === i;
         });
 
-        var msgs = groupData.filter(function(r) { return getRecordType(r) === 'message'; });
+        // 过滤掉SYS:FWD系统消息，只显示A的真实消息
+        var msgs = groupData.filter(function(r) { 
+          var d = getRecordData(r);
+          var content = d.content || r.content || '';
+          return getRecordType(r) === 'message' && !isSystemFwdMessage(content); 
+        });
         var forwards = groupData.filter(function(r) { return getRecordType(r) === 'forward'; });
         var subRecord = groupData.filter(function(r) { return getRecordType(r) === 'subscription'; }).pop();
         var subsRaw = subRecord ? (getRecordData(subRecord).topics || []) : [];
@@ -385,6 +404,11 @@
           var topicId = getRecordData(m).topicId;
           return forwardMsgIds.indexOf(msgId) > -1 && subs.indexOf(topicId) > -1;
         }).length;
+
+        // 统计参与的角色：有A发送=1A，有B转发=1B，有C订阅=1C
+        var countA = msgs.length > 0 ? 1 : 0;
+        var countB = forwards.length > 0 ? 1 : 0;
+        var countC = subs.length > 0 ? 1 : 0;
 
         var card = document.createElement('div');
         card.className = 'pixel-box group-card';
@@ -404,7 +428,7 @@
         card.innerHTML = '\
           <div class="flex justify-between items-center mb-3">\
             <span class="font-bold text-gray-800 text-sm">第 ' + i + ' 组</span>\
-            <span class="text-xs bg-gray-100 px-2 py-1 border border-black">' + msgs.length + 'A/' + forwards.length + 'B/' + deliveredCount + 'C</span>\
+            <span class="text-xs bg-gray-100 px-2 py-1 border border-black">' + countA + 'A/' + countB + 'B/' + countC + 'C</span>\
           </div>\
           <div class="progress-bar mb-3">\
             <div class="progress-fill" style="width: ' + progressPercent + '%"></div>\
@@ -423,13 +447,18 @@
       var modal = document.getElementById('group-detail-modal');
       document.getElementById('detail-title').textContent = '第 ' + groupId + ' 组详情';
 
-      var msgs = groupData.filter(function(r) { return getRecordType(r) === 'message'; });
-      var forwards = groupData.filter(function(r) { return getRecordType(r) === 'forward' || getRecordType(r) === 'message'; }).map(function(r) { return getMsgId(r); });
+      // 过滤掉SYS:FWD系统消息
+      var msgs = groupData.filter(function(r) { 
+        var d = getRecordData(r);
+        var content = d.content || r.content || '';
+        return getRecordType(r) === 'message' && !isSystemFwdMessage(content); 
+      });
+      var forwards = groupData.filter(function(r) { return getRecordType(r) === 'forward'; }).map(function(r) { return getMsgId(r); });
       var subRecord = groupData.filter(function(r) { return getRecordType(r) === 'subscription'; }).pop();
       var subsRaw = subRecord ? (getRecordData(subRecord).topics || []) : [];
       var subs = typeof subsRaw === 'string' ? JSON.parse(subsRaw) : (subsRaw || []);
 
-      // A 的消息
+      // ===== A 发送的消息 =====
       var msgsAHtml = '';
       if (msgs.length === 0) {
         msgsAHtml = '<p class="text-gray-400 text-center p-4">暂无消息</p>';
@@ -437,32 +466,45 @@
         msgs.forEach(function(m) {
           var d = getRecordData(m);
           var topic = TOPICS.find(function(t) { return t.id === d.topicId; });
-          msgsAHtml += '<div class="p-3 border-2 border-orange-300 bg-orange-50 text-sm">' +
-            '<span class="font-bold" style="color:#fff;background:' + (topic ? topic.color : '#999') + ';padding:2px 8px;border-radius:4px">' + (topic ? topic.name : '') + '</span> ' +
-            escapeHtml(d.content || '') +
+          var topicName = topic ? topic.name : '';
+          var topicColor = topic ? topic.color : '#999';
+          var content = d.content || '';
+          msgsAHtml += '<div class="p-3 border-2 border-orange-300 bg-orange-50 text-sm mb-2">' +
+            '<div class="flex items-center gap-2 mb-1">' +
+            '<span class="font-bold text-xs" style="color:#fff;background:' + topicColor + ';padding:2px 8px;border-radius:4px">' + topicName + '</span>' +
+            '<span class="text-xs text-gray-500">A角色发送</span>' +
+            '</div>' +
+            '<div class="text-gray-800">' + escapeHtml(content) + '</div>' +
             '</div>';
         });
       }
       document.getElementById('detail-msgs-a').innerHTML = msgsAHtml;
 
-      // B 转发的消息
+      // ===== B 转发的消息（接收+转发） =====
       var forwardedMsgs = msgs.filter(function(m) { return forwards.indexOf(getMsgId(m)) > -1; });
       var msgsBHtml = '';
       if (forwardedMsgs.length === 0) {
         msgsBHtml = '<p class="text-gray-400 text-center p-4">暂无转发</p>';
       } else {
+        msgsBHtml = '<p class="text-xs text-gray-500 mb-2">B角色接收并转发了以下消息：</p>';
         forwardedMsgs.forEach(function(m) {
           var d = getRecordData(m);
           var topic = TOPICS.find(function(t) { return t.id === d.topicId; });
-          msgsBHtml += '<div class="p-3 border-2 border-green-500 bg-green-50 text-sm">' +
-            '<span class="font-bold" style="color:#fff;background:' + (topic ? topic.color : '#999') + ';padding:2px 8px;border-radius:4px">' + (topic ? topic.name : '') + '</span> ' +
-            escapeHtml(d.content || '') +
+          var topicName = topic ? topic.name : '';
+          var topicColor = topic ? topic.color : '#999';
+          var content = d.content || '';
+          msgsBHtml += '<div class="p-3 border-2 border-green-500 bg-green-50 text-sm mb-2">' +
+            '<div class="flex items-center gap-2 mb-1">' +
+            '<span class="font-bold text-xs" style="color:#fff;background:' + topicColor + ';padding:2px 8px;border-radius:4px">' + topicName + '</span>' +
+            '<span class="text-xs text-green-600 font-medium">✓ 已转发</span>' +
+            '</div>' +
+            '<div class="text-gray-800">' + escapeHtml(content) + '</div>' +
             '</div>';
         });
       }
       document.getElementById('detail-msgs-b').innerHTML = msgsBHtml;
 
-      // C 送达的消息（被转发且C订阅了对应主题）
+      // ===== C 收到的消息（被转发且C订阅了对应主题） =====
       var deliveredMsgs = msgs.filter(function(m) {
         var msgId = getMsgId(m);
         var topicId = getRecordData(m).topicId;
@@ -475,23 +517,31 @@
         deliveredMsgs.forEach(function(m) {
           var d = getRecordData(m);
           var topic = TOPICS.find(function(t) { return t.id === d.topicId; });
-          msgsCHtml += '<div class="p-3 border-2 border-purple-500 bg-purple-50 text-sm">' +
-            '<span class="font-bold" style="color:#fff;background:' + (topic ? topic.color : '#999') + ';padding:2px 8px;border-radius:4px">' + (topic ? topic.name : '') + '</span> ' +
-            escapeHtml(d.content || '') +
+          var topicName = topic ? topic.name : '';
+          var topicColor = topic ? topic.color : '#999';
+          var content = d.content || '';
+          msgsCHtml += '<div class="p-3 border-2 border-purple-500 bg-purple-50 text-sm mb-2">' +
+            '<div class="flex items-center gap-2 mb-1">' +
+            '<span class="font-bold text-xs" style="color:#fff;background:' + topicColor + ';padding:2px 8px;border-radius:4px">' + topicName + '</span>' +
+            '<span class="text-xs text-purple-600 font-medium">📩 已送达</span>' +
+            '</div>' +
+            '<div class="text-gray-800">' + escapeHtml(content) + '</div>' +
             '</div>';
         });
       }
       document.getElementById('detail-msgs-c').innerHTML = msgsCHtml;
 
-      // C 的订阅
+      // ===== C 订阅的主题 =====
       var subsCHtml = '';
       if (subs.length === 0) {
         subsCHtml = '<p class="text-gray-400 text-sm">暂无订阅</p>';
       } else {
+        subsCHtml = '<p class="text-xs text-gray-500 mb-2">C角色订阅了以下主题：</p><div class="flex flex-wrap gap-2">';
         subs.forEach(function(s) {
           var topic = TOPICS.find(function(t) { return t.id === s; });
           subsCHtml += '<span class="px-3 py-1 text-sm" style="background:' + (topic ? topic.color : '#999') + ';color:white;border-radius:9999px;font-weight:600">' + (topic ? topic.name : s) + '</span>';
         });
+        subsCHtml += '</div>';
       }
       document.getElementById('detail-subs-c').innerHTML = subsCHtml;
 
@@ -515,8 +565,8 @@
     checkProtocol();
     renderTeacher();
     loadData();
-    // 每5秒自动刷新
-    setInterval(loadData, 5000);
+    // 每10秒自动刷新（避免429错误）
+    setInterval(loadData, 10000);
   </script>
 </body>
 </html>
