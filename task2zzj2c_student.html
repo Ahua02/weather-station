@@ -765,6 +765,9 @@
       processed.push(msgId);
       safeSetItem(processedKey, JSON.stringify(processed));
       
+      // 将转发记录发送到服务器，让 C 也能获取
+      postData({ type: 'forward', group: state.currentGroup, msgId: msgId, topicId: topicId });
+      
       syncData();
     }
 
@@ -774,7 +777,7 @@
         var xhr = new XMLHttpRequest();
         xhr.open('POST', API_URL, true);
         xhr.setRequestHeader('Content-Type', 'application/json');
-        var payload = JSON.stringify({ type: data.type, group: data.group, topicId: data.topicId, content: data.content, topics: data.topics, timestamp: Date.now() });
+        var payload = JSON.stringify({ type: data.type, group: data.group, topicId: data.topicId, content: data.content, topics: data.topics, msgId: data.msgId, timestamp: Date.now() });
         xhr.send(payload);
       } catch (e) {
         // 静默失败
@@ -861,6 +864,22 @@
                 for (var k in subs) { localSubs[k] = subs[k]; }
                 safeSetItem('mqtt_subs', JSON.stringify(localSubs));
               }
+              
+              // 处理转发记录，让 C 角色的设备也能获取转发状态
+              var hasForwards = false;
+              records.forEach(function(r) {
+                var recData = r.data ? (typeof r.data === 'object' ? r.data : JSON.parse(r.data || '{}')) : r;
+                if (recData.type === 'forward') {
+                  var group = recData.group || r.group;
+                  var forwardKey = 'mqtt_processed_' + group;
+                  var forwarded = JSON.parse(safeGetItem(forwardKey) || '[]');
+                  if (forwarded.indexOf(recData.msgId) === -1) {
+                    forwarded.push(recData.msgId);
+                    safeSetItem(forwardKey, JSON.stringify(forwarded));
+                  }
+                  hasForwards = true;
+                }
+              });
               
               // 根据当前角色渲染
               renderWithLocalData();
